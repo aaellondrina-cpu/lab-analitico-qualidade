@@ -15,7 +15,13 @@ export type AuditEntity =
   | "Laudo"
   | "Equipamento"
   | "PontoColeta"
-  | "User";
+  | "User"
+  | "Fornecedor"
+  | "Insumo"
+  | "LoteInsumo"
+  | "ConsumoInsumo"
+  | "Embalagem"
+  | "RegistroCIP";
 
 /**
  * Registra ação na trilha de auditoria (compliance MAPA / ISO 17025).

@@ -36,17 +36,20 @@ async function gerarNumero(prefix: string, model: "amostra" | "naoConformidade")
   const year = new Date().getFullYear();
   const full = `${prefix}-${year}-`;
   // SQLite-safe sequence: pega o maior numero existente para este prefix-ano
-  const last =
-    model === "amostra"
-      ? await prisma.amostra.findFirst({
-          where: { numeroOS: { startsWith: full } },
-          orderBy: { numeroOS: "desc" },
-        })
-      : await prisma.naoConformidade.findFirst({
-          where: { numero: { startsWith: full } },
-          orderBy: { numero: "desc" },
-        });
-  const current = last ? (model === "amostra" ? last.numeroOS : last.numero) : null;
+  let current: string | null = null;
+  if (model === "amostra") {
+    const last = await prisma.amostra.findFirst({
+      where: { numeroOS: { startsWith: full } },
+      orderBy: { numeroOS: "desc" },
+    });
+    current = last?.numeroOS ?? null;
+  } else {
+    const last = await prisma.naoConformidade.findFirst({
+      where: { numero: { startsWith: full } },
+      orderBy: { numero: "desc" },
+    });
+    current = last?.numero ?? null;
+  }
   const nextSeq = current ? parseInt(current.slice(full.length), 10) + 1 : 1;
   return `${full}${String(nextSeq).padStart(4, "0")}`;
 }
