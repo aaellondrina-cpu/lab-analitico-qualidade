@@ -81,6 +81,7 @@ model Lote {
   status              String   @default("EM_PRODUCAO") // EM_PRODUCAO | FINALIZADO | LIBERADO | RETIDO | DESCARTADO
   observacoes         String?
   amostras            Amostra[]
+  consumos            ConsumoInsumo[]
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -99,7 +100,11 @@ model Amostra {
   loteId          String
   pontoColeta     PontoColeta? @relation(fields: [pontoColetaId], references: [id])
   pontoColetaId   String?
-  tipoAnalise     String // ROTINA | RETENCAO | REPROCESSO | AUDITORIA | RECLAMACAO
+  loteInsumo      LoteInsumo? @relation(fields: [loteInsumoId], references: [id])
+  loteInsumoId    String?
+  embalagem       Embalagem?  @relation(fields: [embalagemId], references: [id])
+  embalagemId     String?
+  tipoAnalise     String // ROTINA | RETENCAO | REPROCESSO | AUDITORIA | RECLAMACAO | XAROPE_SIMPLES | XAROPE_COMPOSTO | INSUMO | EMBALAGEM | AGUA | CIP | SWAB | AR
   status          String      @default("RECEBIDA") // RECEBIDA | EM_ANALISE | AGUARDANDO_APROVACAO | APROVADO | LAUDO_EMITIDO
   quantidade      Int         @default(1)
   volume          String?
@@ -112,12 +117,15 @@ model Amostra {
   resultados      Resultado[]
   ncs             NaoConformidade[]
   laudo           Laudo?
+  registrosCIP    RegistroCIP[]
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
   @@index([clienteId])
   @@index([produtoId])
   @@index([loteId])
+  @@index([loteInsumoId])
+  @@index([embalagemId])
   @@index([status])
 }
 
@@ -193,6 +201,124 @@ model Laudo {
   createdAt       DateTime @default(now())
 
   @@index([numero])
+}
+
+// =========================================================
+// Módulos especializados — indústria de bebidas
+// Fornecedor, Insumo, LoteInsumo, ConsumoInsumo,
+// Embalagem, RegistroCIP
+// =========================================================
+
+model Fornecedor {
+  id            String   @id @default(cuid())
+  razaoSocial   String
+  cnpj          String   @unique
+  responsavel   String
+  email         String
+  telefone      String
+  endereco      String?
+  certificacoes String?  // ISO 22000 / FSSC / BPF — texto livre por enquanto
+  insumos       Insumo[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Insumo {
+  id           String       @id @default(cuid())
+  nome         String
+  codigo       String       @unique
+  // AGUA | ACUCAR | HFCS | CO2 | CONCENTRADO | ESSENCIA |
+  // EDULCORANTE | ACIDULANTE | CONSERVANTE | CORANTE | OUTRO
+  tipo         String
+  fornecedor   Fornecedor   @relation(fields: [fornecedorId], references: [id])
+  fornecedorId String
+  unidadePadrao String      @default("kg") // kg | L | m3 | un
+  lotes        LoteInsumo[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([fornecedorId])
+  @@index([tipo])
+}
+
+model LoteInsumo {
+  id              String          @id @default(cuid())
+  insumo          Insumo          @relation(fields: [insumoId], references: [id])
+  insumoId        String
+  loteFornecedor  String          // número do lote no fornecedor
+  dataFabricacao  DateTime
+  dataValidade    DateTime
+  quantidade      Float
+  unidade         String          // kg | L | m3 | un
+  certificadoUrl  String?         // PDF do CoA do fornecedor (upload futuro)
+  status          String          @default("EM_ANALISE") // EM_ANALISE | APROVADO | REPROVADO | QUARENTENA
+  observacoes     String?
+  amostras        Amostra[]
+  consumos        ConsumoInsumo[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([insumoId])
+  @@index([status])
+  @@index([dataValidade])
+}
+
+// Rastreabilidade bidirecional: dado um lote de produção,
+// quais insumos foram consumidos; dado um lote de insumo,
+// em quais produções foi usado.
+model ConsumoInsumo {
+  id           String     @id @default(cuid())
+  lote         Lote       @relation(fields: [loteId], references: [id])
+  loteId       String
+  loteInsumo   LoteInsumo @relation(fields: [loteInsumoId], references: [id])
+  loteInsumoId String
+  quantidade   Float
+  unidade      String
+  createdAt    DateTime   @default(now())
+
+  @@index([loteId])
+  @@index([loteInsumoId])
+}
+
+model Embalagem {
+  id              String    @id @default(cuid())
+  tipo            String    // PET | VIDRO_RETORNAVEL | VIDRO_NAO_RETORNAVEL | LATA | TAMPA | ROTULO
+  fornecedor      String    // nome livre por enquanto (pode virar relation depois)
+  loteFornecedor  String
+  volumeNominalMl Float?    // ml — para PET / vidro / lata
+  pesoGramas      Float?    // garrafa PET
+  espessuraMm     Float?    // parede PET
+  resistenciaBar  Float?    // pressão interna PET
+  torqueNcm       Float?    // tampa
+  numeroTrips     Int?      // vidro retornável: nº de usos
+  status          String    @default("EM_ANALISE") // EM_ANALISE | APROVADA | REPROVADA | DESCARTE
+  observacoes     String?
+  amostras        Amostra[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([tipo])
+  @@index([status])
+}
+
+// Clean-In-Place: limpeza de tanques, linhas, equipamentos.
+// Pode estar vinculado a uma amostra microbiológica que comprove eficácia.
+model RegistroCIP {
+  id              String   @id @default(cuid())
+  alvo            String   // Tanque Xarope Simples | Linha 1 | Enchedora | CIP Geral...
+  responsavel     String
+  concentracao    Float    // % solução
+  temperatura     Float    // °C
+  tempoContatoMin Int      // minutos
+  resultadoMicro  String?  // observação rápida (resultado da amostra está em Amostra)
+  amostra         Amostra? @relation(fields: [amostraId], references: [id])
+  amostraId       String?
+  status          String   // APROVADO | REPROCESSAR
+  observacoes     String?
+  data            DateTime @default(now())
+
+  @@index([status])
+  @@index([data])
 }
 
 // Trilha de auditoria para compliance MAPA / ISO 17025.
