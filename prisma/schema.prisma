@@ -6,8 +6,12 @@ generator client {
 }
 
 datasource db {
-  // TEMP: sqlite pra dev local. Reverter pra "postgresql" quando DATABASE_URL do Neon estiver configurado.
-  provider = "sqlite"
+  // Produção: Postgres no Neon (lims-qualidade.vercel.app).
+  // Para dev local: ou aponta DATABASE_URL pro Neon (free tier),
+  // ou puxa via `npx vercel env pull .env`.
+  // Para usar sqlite local temporário, troque provider para "sqlite"
+  // e DATABASE_URL para "file:./dev.db" — apenas em dev, NUNCA commitar.
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
