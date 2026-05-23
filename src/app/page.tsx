@@ -46,7 +46,7 @@ export default function Home() {
       </main>
 
       <footer className="px-6 py-5 text-center text-xs text-slate-500 border-t border-slate-200 bg-white">
-        © {new Date().getFullYear()} LimsQual · LAB-ANALITICS-AAEL
+        © {new Date().getFullYear()} LimsQual — Controle de Qualidade
       </footer>
     </div>
   );

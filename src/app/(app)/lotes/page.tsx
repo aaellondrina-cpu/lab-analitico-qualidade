@@ -121,7 +121,15 @@ export default async function LotesPage({
                     </td>
                     <td className="px-4 py-3 text-right text-slate-600">{l._count.amostras}</td>
                     <td className="px-4 py-3 text-right">
-                      <LoteStatusActions id={l.id} status={l.status} />
+                      <div className="flex items-center justify-end gap-3">
+                        <Link
+                          href={`/lotes/${l.id}/editar`}
+                          className="text-xs text-petroleo hover:underline"
+                        >
+                          Editar
+                        </Link>
+                        <LoteStatusActions id={l.id} status={l.status} />
+                      </div>
                     </td>
                   </tr>
                 );

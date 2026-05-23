@@ -98,7 +98,7 @@ export default async function LaudoDetalhePage({
               )}
               <div>
                 <div className="text-base font-bold text-slate-900">
-                  {config?.razaoSocial ?? "LimsQual · Laboratório AAEL"}
+                  {config?.razaoSocial ?? "LimsQual — Controle de Qualidade"}
                 </div>
                 {config && (
                   <div className="text-xs text-slate-600">

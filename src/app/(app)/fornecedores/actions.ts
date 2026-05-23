@@ -62,6 +62,43 @@ export async function criarFornecedor(
   return { ok: true };
 }
 
+export async function atualizarFornecedor(
+  _prev: FornecedorFormState,
+  formData: FormData,
+): Promise<FornecedorFormState> {
+  await requireUser();
+
+  const id = formData.get("id");
+  if (typeof id !== "string" || !id) return { message: "ID inválido." };
+
+  const parsed = FornecedorSchema.safeParse({
+    razaoSocial: formData.get("razaoSocial"),
+    cnpj: formData.get("cnpj"),
+    responsavel: formData.get("responsavel"),
+    email: formData.get("email"),
+    telefone: formData.get("telefone"),
+    endereco: formData.get("endereco"),
+    certificacoes: formData.get("certificacoes"),
+  });
+
+  if (!parsed.success) {
+    return { errors: z.flattenError(parsed.error).fieldErrors as Record<string, string[]> };
+  }
+
+  try {
+    await prisma.fornecedor.update({ where: { id }, data: parsed.data });
+  } catch (e) {
+    const msg = (e as { code?: string }).code === "P2002"
+      ? "Já existe outro fornecedor com este CNPJ."
+      : "Erro ao atualizar fornecedor.";
+    return { message: msg };
+  }
+
+  await auditLog({ action: "UPDATE", entity: "Fornecedor", entityId: id, diff: parsed.data });
+  revalidatePath("/fornecedores");
+  return { ok: true };
+}
+
 export async function excluirFornecedor(id: string) {
   await requireUser();
   let removed;

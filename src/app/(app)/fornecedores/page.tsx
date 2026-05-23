@@ -62,7 +62,15 @@ export default async function FornecedoresPage() {
                   <td className="px-4 py-3 text-xs text-slate-500">{f.certificacoes ?? "—"}</td>
                   <td className="px-4 py-3 text-right text-slate-600">{f._count.insumos}</td>
                   <td className="px-4 py-3 text-right">
-                    <ExcluirFornecedorButton id={f.id} disabled={f._count.insumos > 0} />
+                    <div className="flex items-center justify-end gap-3">
+                      <Link
+                        href={`/fornecedores/${f.id}/editar`}
+                        className="text-xs text-petroleo hover:underline"
+                      >
+                        Editar
+                      </Link>
+                      <ExcluirFornecedorButton id={f.id} disabled={f._count.insumos > 0} />
+                    </div>
                   </td>
                 </tr>
               ))}

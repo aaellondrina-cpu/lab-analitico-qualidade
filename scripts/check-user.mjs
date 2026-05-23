@@ -2,7 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
-const email = "admin@aael.com.br";
+const email = "admin@limsqual.app";
 const password = "Admin@2026";
 
 const user = await prisma.user.findUnique({ where: { email } });

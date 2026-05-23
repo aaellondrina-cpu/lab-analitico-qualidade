@@ -101,6 +101,47 @@ export async function criarProduto(
   return { ok: true };
 }
 
+const ProdutoBaseSchema = z.object({
+  nome: z.string().min(2, "Nome muito curto").trim(),
+  codigo: z.string().min(1, "Código obrigatório").trim().transform((s) => s.toUpperCase()),
+  tipo: z.enum(TIPOS_VALIDOS),
+  sabor: z.string().optional().transform((v) => (v && v.trim() !== "" ? v.trim() : null)),
+});
+
+export async function atualizarProduto(
+  _prev: ProdutoFormState,
+  formData: FormData,
+): Promise<ProdutoFormState> {
+  await requireUser();
+
+  const id = formData.get("id");
+  if (typeof id !== "string" || !id) return { message: "ID inválido." };
+
+  const parsed = ProdutoBaseSchema.safeParse({
+    nome: formData.get("nome"),
+    codigo: formData.get("codigo"),
+    tipo: formData.get("tipo"),
+    sabor: formData.get("sabor"),
+  });
+
+  if (!parsed.success) {
+    return { errors: z.flattenError(parsed.error).fieldErrors as Record<string, string[]> };
+  }
+
+  try {
+    await prisma.produto.update({ where: { id }, data: parsed.data });
+  } catch (e) {
+    const msg = (e as { code?: string }).code === "P2002"
+      ? "Já existe outro produto com este código."
+      : "Erro ao atualizar produto.";
+    return { message: msg };
+  }
+
+  await auditLog({ action: "UPDATE", entity: "Produto", entityId: id, diff: parsed.data });
+  revalidatePath("/produtos");
+  return { ok: true };
+}
+
 export async function excluirProduto(id: string) {
   await requireUser();
   let removed;

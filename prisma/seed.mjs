@@ -4,9 +4,9 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  const adminEmail = process.env.SEED_ADMIN_EMAIL ?? "admin@aael.com.br";
+  const adminEmail = process.env.SEED_ADMIN_EMAIL ?? "admin@limsqual.app";
   const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? "Admin@2026";
-  const adminName = process.env.SEED_ADMIN_NAME ?? "Administrador AAEL";
+  const adminName = process.env.SEED_ADMIN_NAME ?? "Administrador";
 
   const passwordHash = await bcrypt.hash(adminPassword, 10);
 

@@ -57,7 +57,7 @@ export default async function VerificarLaudoPage({
               />
             )}
             <div className="text-xs uppercase tracking-wider text-slate-500">
-              {config?.razaoSocial ?? "LimsQual · Laboratório AAEL"}
+              {config?.razaoSocial ?? "LimsQual — Controle de Qualidade"}
             </div>
             {config && (
               <div className="text-[11px] text-slate-500">CNPJ: {config.cnpj}</div>
@@ -100,8 +100,8 @@ export default async function VerificarLaudoPage({
           </section>
 
           <footer className="mt-8 pt-6 border-t border-slate-200 text-center text-xs text-slate-500">
-            Esta verificação confirma a autenticidade do laudo emitido por
-            LimsQual / Laboratório AAEL.<br />
+            Esta verificação confirma a autenticidade do laudo emitido pelo
+            sistema LimsQual.<br />
             Token: <span className="font-mono text-[10px]">{laudo.qrToken}</span>
           </footer>
         </div>

@@ -2,13 +2,32 @@
 
 import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { criarFornecedor, type FornecedorFormState } from "../actions";
+import {
+  criarFornecedor,
+  atualizarFornecedor,
+  type FornecedorFormState,
+} from "../actions";
 import { MaskedInput } from "@/components/MaskedInput";
 
 const initialState: FornecedorFormState = {};
 
-export function FornecedorForm() {
-  const [state, action, pending] = useActionState(criarFornecedor, initialState);
+export type FornecedorInitial = {
+  id: string;
+  razaoSocial: string;
+  cnpj: string;
+  responsavel: string;
+  email: string;
+  telefone: string;
+  endereco: string | null;
+  certificacoes: string | null;
+};
+
+export function FornecedorForm({ initial }: { initial?: FornecedorInitial }) {
+  const isEdit = !!initial;
+  const [state, action, pending] = useActionState(
+    isEdit ? atualizarFornecedor : criarFornecedor,
+    initialState,
+  );
   const router = useRouter();
 
   useEffect(() => {
@@ -20,29 +39,58 @@ export function FornecedorForm() {
 
   return (
     <form action={action} className="space-y-4">
-      <Field label="Razão Social" name="razaoSocial" errors={state.errors?.razaoSocial} required />
+      {initial && <input type="hidden" name="id" value={initial.id} />}
+
+      <Field
+        label="Razão Social"
+        name="razaoSocial"
+        defaultValue={initial?.razaoSocial}
+        errors={state.errors?.razaoSocial}
+        required
+      />
       <FieldMasked
         label="CNPJ"
         name="cnpj"
         mask="cnpj"
+        defaultValue={initial?.cnpj}
         errors={state.errors?.cnpj}
         placeholder="00.000.000/0000-00"
         required
       />
-      <Field label="Responsável" name="responsavel" errors={state.errors?.responsavel} required />
-      <Field label="E-mail" name="email" type="email" errors={state.errors?.email} required />
+      <Field
+        label="Responsável"
+        name="responsavel"
+        defaultValue={initial?.responsavel}
+        errors={state.errors?.responsavel}
+        required
+      />
+      <Field
+        label="E-mail"
+        name="email"
+        type="email"
+        defaultValue={initial?.email}
+        errors={state.errors?.email}
+        required
+      />
       <FieldMasked
         label="Telefone"
         name="telefone"
         mask="telefone"
+        defaultValue={initial?.telefone}
         errors={state.errors?.telefone}
         placeholder="(11) 99999-9999"
         required
       />
-      <Field label="Endereço" name="endereco" errors={state.errors?.endereco} />
+      <Field
+        label="Endereço"
+        name="endereco"
+        defaultValue={initial?.endereco ?? ""}
+        errors={state.errors?.endereco}
+      />
       <Field
         label="Certificações"
         name="certificacoes"
+        defaultValue={initial?.certificacoes ?? ""}
         errors={state.errors?.certificacoes}
         placeholder="Ex: ISO 22000, FSSC 22000, BPF"
       />
@@ -59,7 +107,7 @@ export function FornecedorForm() {
           disabled={pending}
           className="rounded-md bg-petroleo px-4 py-2 text-sm font-medium text-white hover:bg-petroleo-dark disabled:opacity-60"
         >
-          {pending ? "Salvando…" : "Salvar fornecedor"}
+          {pending ? "Salvando…" : isEdit ? "Salvar alterações" : "Salvar fornecedor"}
         </button>
         <button
           type="button"
@@ -80,9 +128,10 @@ type FieldProps = {
   type?: string;
   placeholder?: string;
   required?: boolean;
+  defaultValue?: string;
 };
 
-function Field({ label, name, errors, type = "text", placeholder, required }: FieldProps) {
+function Field({ label, name, errors, type = "text", placeholder, required, defaultValue }: FieldProps) {
   return (
     <div>
       <label htmlFor={name} className="block text-xs font-medium text-slate-700 mb-1">
@@ -94,6 +143,7 @@ function Field({ label, name, errors, type = "text", placeholder, required }: Fi
         type={type}
         placeholder={placeholder}
         required={required}
+        defaultValue={defaultValue}
         className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-agua"
       />
       {errors?.length ? <p className="mt-1 text-xs text-red-600">{errors[0]}</p> : null}
@@ -108,6 +158,7 @@ function FieldMasked({
   errors,
   placeholder,
   required,
+  defaultValue,
 }: FieldProps & { mask: "cnpj" | "cpf" | "telefone" | "cep" }) {
   return (
     <div>
@@ -120,6 +171,7 @@ function FieldMasked({
         mask={mask}
         placeholder={placeholder}
         required={required}
+        defaultValue={defaultValue}
         className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-agua"
       />
       {errors?.length ? <p className="mt-1 text-xs text-red-600">{errors[0]}</p> : null}

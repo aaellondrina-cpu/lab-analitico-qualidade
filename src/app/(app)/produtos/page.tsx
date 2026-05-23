@@ -57,7 +57,15 @@ export default async function ProdutosPage() {
                   <td className="px-4 py-3 text-right text-slate-600">{p._count.especificacoes}</td>
                   <td className="px-4 py-3 text-right text-slate-600">{p._count.amostras}</td>
                   <td className="px-4 py-3 text-right">
-                    <ExcluirProdutoButton id={p.id} disabled={p._count.amostras > 0} />
+                    <div className="flex items-center justify-end gap-3">
+                      <Link
+                        href={`/produtos/${p.id}/editar`}
+                        className="text-xs text-petroleo hover:underline"
+                      >
+                        Editar
+                      </Link>
+                      <ExcluirProdutoButton id={p.id} disabled={p._count.amostras > 0} />
+                    </div>
                   </td>
                 </tr>
               ))}

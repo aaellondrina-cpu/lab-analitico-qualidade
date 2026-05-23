@@ -60,7 +60,15 @@ export default async function ClientesPage() {
                   </td>
                   <td className="px-4 py-3 text-right text-slate-600">{c._count.amostras}</td>
                   <td className="px-4 py-3 text-right">
-                    <ExcluirClienteButton id={c.id} disabled={c._count.amostras > 0} />
+                    <div className="flex items-center justify-end gap-3">
+                      <Link
+                        href={`/clientes/${c.id}/editar`}
+                        className="text-xs text-petroleo hover:underline"
+                      >
+                        Editar
+                      </Link>
+                      <ExcluirClienteButton id={c.id} disabled={c._count.amostras > 0} />
+                    </div>
                   </td>
                 </tr>
               ))}

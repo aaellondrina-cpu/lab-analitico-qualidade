@@ -86,6 +86,47 @@ export async function criarLote(
 
 const STATUS_INPUT = z.enum(STATUS_VALIDOS);
 
+export async function atualizarLote(
+  _prev: LoteFormState,
+  formData: FormData,
+): Promise<LoteFormState> {
+  await requireUser();
+
+  const id = formData.get("id");
+  if (typeof id !== "string" || !id) return { message: "ID inválido." };
+
+  const parsed = LoteSchema.safeParse({
+    numero: formData.get("numero"),
+    produtoId: formData.get("produtoId"),
+    sabor: formData.get("sabor"),
+    dataInicioProducao: formData.get("dataInicioProducao"),
+    dataFimProducao: formData.get("dataFimProducao"),
+    volumeTotal: formData.get("volumeTotal"),
+    unidadesProduzidas: formData.get("unidadesProduzidas"),
+    linha: formData.get("linha"),
+    turno: formData.get("turno"),
+    responsavelProducao: formData.get("responsavelProducao"),
+    observacoes: formData.get("observacoes"),
+  });
+
+  if (!parsed.success) {
+    return { errors: z.flattenError(parsed.error).fieldErrors as Record<string, string[]> };
+  }
+
+  try {
+    await prisma.lote.update({ where: { id }, data: parsed.data });
+  } catch (e) {
+    const msg = (e as { code?: string }).code === "P2002"
+      ? "Já existe outro lote com este número."
+      : "Erro ao atualizar lote.";
+    return { message: msg };
+  }
+
+  await auditLog({ action: "UPDATE", entity: "Lote", entityId: id, diff: parsed.data });
+  revalidatePath("/lotes");
+  return { ok: true };
+}
+
 export async function atualizarStatusLote(id: string, novoStatus: string) {
   await requireUser();
   const status = STATUS_INPUT.parse(novoStatus);

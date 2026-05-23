@@ -6,7 +6,7 @@ import { atualizarStatusLote } from "../actions";
 
 const TRANSITIONS: Record<string, { label: string; to: string; color: string }[]> = {
   EM_PRODUCAO: [
-    { label: "Finalizar", to: "FINALIZADO", color: "bg-slate-600 text-white hover:bg-slate-700" },
+    { label: "Marcar Produzida", to: "FINALIZADO", color: "bg-slate-600 text-white hover:bg-slate-700" },
   ],
   FINALIZADO: [
     { label: "Liberar", to: "LIBERADO", color: "bg-emerald-600 text-white hover:bg-emerald-700" },

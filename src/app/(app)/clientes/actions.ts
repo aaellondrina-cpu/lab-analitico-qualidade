@@ -58,6 +58,44 @@ export async function criarCliente(
   return { ok: true };
 }
 
+export async function atualizarCliente(
+  _prev: ClienteFormState,
+  formData: FormData,
+): Promise<ClienteFormState> {
+  await requireUser();
+
+  const id = formData.get("id");
+  if (typeof id !== "string" || !id) {
+    return { message: "ID inválido." };
+  }
+
+  const parsed = ClienteSchema.safeParse({
+    razaoSocial: formData.get("razaoSocial"),
+    cnpj: formData.get("cnpj"),
+    responsavel: formData.get("responsavel"),
+    email: formData.get("email"),
+    telefone: formData.get("telefone"),
+  });
+
+  if (!parsed.success) {
+    return { errors: z.flattenError(parsed.error).fieldErrors as Record<string, string[]> };
+  }
+
+  try {
+    await prisma.cliente.update({ where: { id }, data: parsed.data });
+  } catch (e) {
+    const msg = (e as { code?: string }).code === "P2002"
+      ? "Já existe outro cliente com este CNPJ."
+      : "Erro ao atualizar cliente.";
+    return { message: msg };
+  }
+
+  await auditLog({ action: "UPDATE", entity: "Cliente", entityId: id, diff: parsed.data });
+  revalidatePath("/clientes");
+  revalidatePath(`/clientes/${id}/editar`);
+  return { ok: true };
+}
+
 export async function excluirCliente(id: string) {
   await requireUser();
   let removed;
