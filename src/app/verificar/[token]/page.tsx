@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getConfiguracao } from "@/lib/configuracao";
 
 const CONCLUSAO_LABEL: Record<string, string> = {
   APROVADO: "APROVADO",
@@ -40,14 +41,27 @@ export default async function VerificarLaudoPage({
 
   if (!laudo) notFound();
 
+  const config = await getConfiguracao();
+
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-10">
       <div className="mx-auto max-w-2xl">
         <div className="rounded-lg border border-slate-200 bg-white p-8 shadow-sm">
           <header className="text-center pb-6 border-b border-slate-200">
+            {config?.logoUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={config.logoUrl}
+                alt="Logo"
+                className="h-14 w-14 mx-auto mb-2 object-contain"
+              />
+            )}
             <div className="text-xs uppercase tracking-wider text-slate-500">
-              LimsQual · Laboratório AAEL
+              {config?.razaoSocial ?? "LimsQual · Laboratório AAEL"}
             </div>
+            {config && (
+              <div className="text-[11px] text-slate-500">CNPJ: {config.cnpj}</div>
+            )}
             <h1 className="mt-2 text-2xl font-bold text-petroleo">Verificação de Laudo</h1>
             <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs text-emerald-700">
               <span className="size-1.5 rounded-full bg-emerald-500"></span>

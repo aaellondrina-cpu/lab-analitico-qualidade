@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/dal";
 import { descreverLimite } from "@/lib/conformidade";
+import { getConfiguracao, formacaoLabel } from "@/lib/configuracao";
 import { PrintButton } from "../_components/PrintButton";
 
 const CONCLUSAO_LABEL: Record<string, string> = {
@@ -65,6 +66,7 @@ export default async function LaudoDetalhePage({
 
   if (!laudo) notFound();
 
+  const config = await getConfiguracao();
   const base = await baseUrl();
   const verifyUrl = `${base}/verificar/${laudo.qrToken}`;
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=0&data=${encodeURIComponent(verifyUrl)}`;
@@ -86,17 +88,52 @@ export default async function LaudoDetalhePage({
 
       <article className="rounded-lg border border-slate-300 bg-white p-8 print:border-0 print:p-0">
         {/* Cabeçalho */}
-        <header className="flex justify-between items-start pb-4 border-b border-slate-300">
-          <div>
-            <div className="text-xs text-slate-500 uppercase tracking-wide">LimsQual · Laboratório AAEL</div>
-            <h1 className="mt-1 text-2xl font-bold text-petroleo">Laudo de Análise</h1>
-            <div className="mt-1 text-sm text-slate-600">ISO/IEC 17025 · MAPA</div>
+        <header className="pb-4 border-b border-slate-300">
+          <div className="flex justify-between items-start gap-6">
+            <div className="flex items-start gap-4 flex-1">
+              {config?.logoUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={config.logoUrl} alt="Logo" className="h-16 w-16 object-contain" />
+              )}
+              <div>
+                <div className="text-base font-bold text-slate-900">
+                  {config?.razaoSocial ?? "LimsQual · Laboratório AAEL"}
+                </div>
+                {config && (
+                  <div className="text-xs text-slate-600">
+                    CNPJ: {config.cnpj} · {config.endereco}, {config.cidade}/{config.estado}
+                  </div>
+                )}
+                {config && (
+                  <div className="text-xs text-slate-600">
+                    Tel: {config.telefone} · {config.email}
+                  </div>
+                )}
+                <h1 className="mt-2 text-xl font-bold text-petroleo">Laudo de Análise</h1>
+              </div>
+            </div>
+            <div className="text-right shrink-0">
+              <div className="text-xs text-slate-500 uppercase tracking-wide">Nº do laudo</div>
+              <div className="font-mono text-lg font-semibold">{laudo.numero}</div>
+              <div className="mt-1 text-xs text-slate-500">Emitido em {fmtDate(laudo.dataEmissao)}</div>
+            </div>
           </div>
-          <div className="text-right">
-            <div className="text-xs text-slate-500 uppercase tracking-wide">Nº do laudo</div>
-            <div className="font-mono text-lg font-semibold">{laudo.numero}</div>
-            <div className="mt-1 text-xs text-slate-500">Emitido em {fmtDate(laudo.dataEmissao)}</div>
-          </div>
+          {config && (
+            <div className="mt-3 pt-3 border-t border-slate-200 text-[11px] text-slate-600 space-y-0.5">
+              <div>
+                <strong>RT:</strong> {config.rtNome} — {formacaoLabel(config.rtFormacao)} · Reg.{" "}
+                {config.rtRegistro}
+              </div>
+              <div className="flex flex-wrap gap-x-3">
+                {config.mapaNumero && <span>Aut. MAPA nº {config.mapaNumero}</span>}
+                {config.anvisaNumero && <span>ANVISA nº {config.anvisaNumero}</span>}
+                {config.inmetroNumero && (
+                  <span>Acreditado INMETRO {config.inmetroNumero} — ISO/IEC 17025</span>
+                )}
+                {config.vigilanciaNumero && <span>Vig. Sanit. nº {config.vigilanciaNumero}</span>}
+              </div>
+            </div>
+          )}
         </header>
 
         {/* Dados do cliente / amostra */}
@@ -184,9 +221,20 @@ export default async function LaudoDetalhePage({
         {/* Rodapé com assinatura e QR */}
         <footer className="mt-8 pt-6 border-t border-slate-300 flex justify-between items-end">
           <div className="text-sm">
+            {config?.rtAssinaturaUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={config.rtAssinaturaUrl}
+                alt="Assinatura RT"
+                className="h-12 mb-1 object-contain"
+              />
+            )}
             <div className="border-b border-slate-400 w-64 mb-1"></div>
             <div className="font-medium text-slate-900">{laudo.emitidoPorNome}</div>
             <div className="text-xs text-slate-600">Responsável técnico · {laudo.emitidoPorRole}</div>
+            {config?.rtRegistro && (
+              <div className="text-xs text-slate-600">Registro: {config.rtRegistro}</div>
+            )}
           </div>
           <div className="text-right">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -195,6 +243,14 @@ export default async function LaudoDetalhePage({
             <div className="text-[9px] text-slate-400 font-mono break-all max-w-[140px]">{laudo.qrToken}</div>
           </div>
         </footer>
+
+        {/* Rodapé legal */}
+        <div className="mt-6 pt-3 border-t border-slate-200 text-center text-[10px] text-slate-500 space-y-0.5">
+          <div>Este laudo só é válido na íntegra. Reprodução parcial requer autorização.</div>
+          {config?.inmetroNumero && (
+            <div>Laboratório acreditado pelo INMETRO conforme ABNT NBR ISO/IEC 17025.</div>
+          )}
+        </div>
       </article>
     </>
   );
