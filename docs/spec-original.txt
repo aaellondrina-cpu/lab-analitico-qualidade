@@ -1,0 +1,253 @@
+PROMPT — Claude Code: LIMS Indústria de Bebidas e Refrigerantes
+CONTEXTO
+Sistema LIMS (Laboratory Information Management System) especializado para indústria de bebidas e refrigerantes. Hospedado no Vercel, repositório GitHub LAB-ANALITICS-AAEL/lims-qualidade, banco PostgreSQL (Neon).
+
+TECNOLOGIA
+Next.js 14 (App Router) + TypeScript
+Tailwind CSS
+Prisma ORM + PostgreSQL (Neon)
+NextAuth.js (autenticação)
+
+
+
+IDENTIDADE VISUAL
+Logo: gota d'água + molécula — minimalista, moderno
+Nome: "LimsQual — Controle de Qualidade"
+Cores: azul petróleo #0D3B5E | azul água #00B4D8 | branco
+Fonte limpa e profissional (Geist ou DM Sans)
+MÓDULOS DO SISTEMA
+MÓDULO 1 — CADASTROS BASE
+Produtos Cadastrados
+Cada produto da indústria tem:
+
+Nome do produto | Código interno
+Tipo: Bebida alcoólica | Não alcoólica | Água | Matéria prima | Embalagem
+Especificações técnicas por parâmetro:
+Parâmetro (ex: pH, Brix, Turbidez, Coliformes)
+Valor mínimo aceitável
+Valor máximo aceitável
+Unidade (pH, °Brix, NTU, NMP/mL, etc.)
+Método analítico (ex: AOAC 970.21, ABNT NBR XXXX)
+Legislação de referência (RDC 331/2019, IN MAPA, etc.)
+Pontos de Coleta
+Nome do ponto (ex: "Linha 1 - Pós pasteurização", "Tanque 3", "CIP saída")
+Tipo: Matéria prima | Processo | Produto acabado | Água | CIP | Ambiente
+Localização na planta
+Clientes / Indústrias
+Razão social | CNPJ | Responsável | Email | Telefone
+Produtos vinculados ao cliente
+MÓDULO 2 — ENTRADA DE AMOSTRAS (CORE DO SISTEMA)
+Registro de Amostra
+Cada amostra recebe:
+
+Número de OS (gerado automaticamente: OS-2026-0001)
+Data/hora de coleta
+Data/hora de recebimento no laboratório
+Cliente | Produto | Lote de produção
+Ponto de coleta
+Tipo de análise: Rotina | Retenção | Reprocesso | Auditoria | Atendimento reclamação
+Quantidade de amostras | Volume
+Condições de transporte: Temperatura, Integridade da embalagem
+Responsável pela coleta
+Prazo de entrega do laudo
+Status da Amostra
+RECEBIDA → EM ANÁLISE → AGUARDANDO APROVAÇÃO → APROVADO → LAUDO EMITIDO
+
+MÓDULO 3 — LANÇAMENTO DE RESULTADOS
+Para cada amostra, lançar resultado por parâmetro:
+
+Valor obtido
+Unidade
+Método utilizado
+Data/hora do ensaio
+Analista responsável
+Equipamento utilizado (com número de série e calibração)
+Conformidade Automática
+Sistema compara resultado com especificação do produto:
+
+✅ CONFORME — resultado dentro dos limites
+❌ NÃO CONFORME — resultado fora dos limites (destaca em vermelho)
+⚠️ ATENÇÃO — resultado próximo ao limite (±10%)
+Rastreabilidade por Lote
+Para cada lote de produção, sistema consolida:
+
+Todos os pontos de coleta analisados
+Todos os parâmetros e resultados
+% de conformidade do lote
+Histórico completo de análises
+MÓDULO 4 — DASHBOARD OPERACIONAL
+Cards principais:
+
+Amostras recebidas hoje
+Amostras em análise (em andamento)
+Laudos pendentes de emissão
+Não conformidades abertas
+Gráficos:
+
+Conformidade por produto (últimos 30 dias) — gráfico de barras
+Tendência de parâmetros críticos — gráfico de linha
+Amostras por tipo (pizza)
+Alertas em destaque:
+
+Amostras com prazo vencendo (próximas 24h)
+Resultados não conformes sem ação corretiva
+MÓDULO 5 — LAUDOS
+Emissão de Laudo
+Geração automática em PDF
+Cabeçalho com logo + dados da empresa
+Dados do cliente e produto
+Número OS + Lote + Data
+Tabela de resultados (parâmetro | resultado | unidade | VMP | conformidade)
+Conclusão: APROVADO / REPROVADO / APROVADO COM RESTRIÇÕES
+Assinatura digital do responsável técnico
+QR Code para verificação de autenticidade
+Tipos de Laudo
+Laudo de análise (resultado individual)
+Relatório de rastreabilidade de lote (todos os resultados do lote)
+Boletim de qualidade mensal
+MÓDULO 6 — NÃO CONFORMIDADES
+Quando resultado for fora do limite:
+
+Abre automaticamente NC com número (NC-2026-0001)
+Campos: Descrição do desvio | Causa raiz (seleção)
+Ação imediata: Liberar | Reter lote | Reprocessar | Descarte
+Ação corretiva | Responsável | Prazo
+Status: ABERTA | EM TRATAMENTO | ENCERRADA
+Histórico de recorrência por produto/parâmetro
+MÓDULO 7 — GESTÃO DE EQUIPAMENTOS
+Nome | Modelo | Nº série | Fabricante
+Data última calibração | Data próxima calibração
+Certificado de calibração (upload PDF)
+Alerta automático quando calibração vencer
+Status: CALIBRADO ✅ | VENCIDO ❌ | PRÓXIMO AO VENCIMENTO ⚠️
+BANCO DE DADOS — SCHEMA PRISMA
+model Cliente {
+  id          String   @id @default(cuid())
+  razaoSocial String
+  cnpj        String   @unique
+  responsavel String
+  email       String
+  telefone    String
+  amostras    Amostra[]
+  createdAt   DateTime @default(now())
+}
+
+model Produto {
+  id              String          @id @default(cuid())
+  nome            String
+  codigo          String          @unique
+  tipo            String
+  especificacoes  Especificacao[]
+  amostras        Amostra[]
+}
+
+model Especificacao {
+  id         String  @id @default(cuid())
+  produto    Produto @relation(fields: [produtoId], references: [id])
+  produtoId  String
+  parametro  String
+  minimo     Float?
+  maximo     Float?
+  unidade    String
+  metodo     String?
+  legislacao String?
+}
+
+model Amostra {
+  id              String      @id @default(cuid())
+  numeroOS        String      @unique
+  cliente         Cliente     @relation(fields: [clienteId], references: [id])
+  clienteId       String
+  produto         Produto     @relation(fields: [produtoId], references: [id])
+  produtoId       String
+  lote            String
+  pontoColeta     String
+  tipoAnalise     String
+  status          String      @default("RECEBIDA")
+  dataColeta      DateTime
+  dataRecebimento DateTime    @default(now())
+  prazoEntrega    DateTime
+  resultados      Resultado[]
+  createdAt       DateTime    @default(now())
+}
+
+model Resultado {
+  id          String   @id @default(cuid())
+  amostra     Amostra  @relation(fields: [amostraId], references: [id])
+  amostraId   String
+  parametro   String
+  valor       Float
+  unidade     String
+  metodo      String?
+  conformidade String  // CONFORME | NAO_CONFORME | ATENCAO
+  analista    String
+  dataEnsaio  DateTime @default(now())
+}
+
+model NaoConformidade {
+  id          String   @id @default(cuid())
+  numero      String   @unique
+  amostraId   String
+  parametro   String
+  valorObtido Float
+  limite      String
+  descricao   String
+  acao        String
+  responsavel String
+  prazo       DateTime
+  status      String   @default("ABERTA")
+  createdAt   DateTime @default(now())
+}
+
+model Equipamento {
+  id               String   @id @default(cuid())
+  nome             String
+  modelo           String
+  numeroSerie      String   @unique
+  ultimaCalibração DateTime
+  proximaCalibração DateTime
+  status           String
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("ANALISTA")
+  createdAt DateTime @default(now())
+}
+PÁGINAS / ROTAS
+/ → Landing page
+/login → Autenticação
+/dashboard → Painel principal
+/amostras → Lista de amostras
+/amostras/nova → Registrar nova amostra
+/amostras/[id] → Detalhe + lançar resultados
+/produtos → Cadastro de produtos e especificações
+/clientes → Gestão de clientes
+/laudos → Emissão e histórico de laudos
+/nao-conformidades → Gestão de NCs
+/equipamentos → Gestão de equipamentos e calibrações
+/relatorios → Relatórios e rastreabilidade de lotes
+FLUXO PRINCIPAL DO SISTEMA
+Cliente envia amostras → laboratório registra OS
+Analista lança resultados por parâmetro
+Sistema compara com especificação → conforme/não conforme
+Se NC → abre não conformidade automaticamente
+Responsável técnico aprova e emite laudo
+Cliente recebe laudo em PDF por email
+Relatório de rastreabilidade disponível por lote
+VARIÁVEIS DE AMBIENTE
+DATABASE_URL=postgresql://neondb_owner:...@neon.tech/neondb
+NEXTAUTH_SECRET=aael-lims-qualidade-secret-2026
+NEXTAUTH_URL=https://lims-qualidade.vercel.app
+NODE_ENV=production
+OBSERVAÇÕES FINAIS
+Interface profissional estilo SaaS industrial (referência: LabWare, LabVantage)
+Responsivo mas focado em desktop (uso em laboratório)
+Dashboard com dados reais do banco
+Conformidade automática baseada nas especificações do produto
+Rastreabilidade completa por lote de produção
+Alertas de NC e calibração de equipamentos
+Conformidade com RDC 331/2019, ISO 17025, ISO 22000
