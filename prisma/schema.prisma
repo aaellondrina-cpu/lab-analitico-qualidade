@@ -172,6 +172,8 @@ model NaoConformidade {
   // de um resultado fora-de-especificação populam resultadoId.
   resultado    Resultado? @relation(fields: [resultadoId], references: [id])
   resultadoId  String?    @unique
+  // NCs também podem ter origem em uma auditoria formal (item do checklist).
+  itemAuditoria ItemAuditoria?
   parametro    String
   valorObtido  Float
   limite       String
@@ -341,6 +343,92 @@ model RegistroCIP {
 
   @@index([status])
   @@index([data])
+}
+
+// =========================================================
+// Configuração do laboratório (singleton)
+// Aplicada no cabeçalho/rodapé de TODOS os laudos e relatórios
+// =========================================================
+model ConfiguracaoLaboratorio {
+  id                String    @id @default(cuid())
+  razaoSocial       String
+  nomeFantasia      String?
+  cnpj              String
+  inscricaoEstadual String?
+  endereco          String
+  cep               String
+  cidade            String
+  estado            String
+  telefone          String
+  email             String
+  site              String?
+  logoUrl           String?
+
+  // Responsável Técnico
+  rtNome            String
+  rtFormacao        String    // FARMACEUTICO | QUIMICO | BIOLOGO | ENG_ALIMENTOS | OUTRO
+  rtRegistro        String    // ex: CRQ-IV-12345
+  rtAssinaturaUrl   String?
+
+  // Autorizações
+  mapaNumero         String?
+  mapaValidade       DateTime?
+  anvisaNumero       String?
+  anvisaValidade     DateTime?
+  inmetroNumero      String?   // CRL
+  inmetroValidade    DateTime?
+  inmetroEscopo      String?
+  vigilanciaNumero   String?
+  vigilanciaOrgao    String?
+  vigilanciaValidade DateTime?
+  ibamaNumero        String?
+  outrosRegistros    String?   // JSON livre
+
+  updatedAt          DateTime  @updatedAt
+}
+
+// =========================================================
+// Auditorias formais (BPF, ISO, ANVISA, MAPA, etc.)
+// Diferente da trilha de logs (AuditLog) — estas são eventos.
+// =========================================================
+model Auditoria {
+  id                String          @id @default(cuid())
+  numero            String          @unique // AUD-2026-NNNN
+  tipo              String          // INTERNA | EXTERNA
+  norma             String          // BPF | ISO_22000 | FSSC_22000 | ISO_17025 | ANVISA | MAPA | INTERNA
+  orgao             String?         // só EXTERNA: ANVISA | MAPA | INMETRO | VIG_SANITARIA | CLIENTE | CERTIFICADORA
+  auditorNome       String
+  auditorCredencial String?
+  dataInicio        DateTime
+  dataFim           DateTime?
+  areas             String          @default("") // CSV — Higiene, Pragas, Rastreabilidade, Calibracao, Documentacao, Treinamento, Instalacoes
+  status            String          @default("PLANEJADA") // PLANEJADA | EM_ANDAMENTO | CONCLUIDA | AGUARDANDO_VERIFICACAO
+  resultado         String?         // APROVADO | APROVADO_COM_RESSALVAS | REPROVADO
+  relatorioUrl      String?         // upload do PDF do órgão
+  prazoResposta     DateTime?
+  observacoes       String?
+  itens             ItemAuditoria[]
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([status])
+  @@index([tipo])
+  @@index([norma])
+}
+
+model ItemAuditoria {
+  id          String           @id @default(cuid())
+  auditoria   Auditoria        @relation(fields: [auditoriaId], references: [id], onDelete: Cascade)
+  auditoriaId String
+  area        String           // Higiene | Pragas | Rastreabilidade | etc.
+  item        String           // descrição do item verificado
+  resultado   String           // CONFORME | NAO_CONFORME | NAO_APLICAVEL | OBSERVACAO
+  observacao  String?
+  nc          NaoConformidade? @relation(fields: [ncId], references: [id])
+  ncId        String?          @unique
+
+  @@index([auditoriaId])
+  @@index([resultado])
 }
 
 // Trilha de auditoria para compliance MAPA / ISO 17025.

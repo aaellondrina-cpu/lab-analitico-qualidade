@@ -21,7 +21,10 @@ export type AuditEntity =
   | "LoteInsumo"
   | "ConsumoInsumo"
   | "Embalagem"
-  | "RegistroCIP";
+  | "RegistroCIP"
+  | "ConfiguracaoLaboratorio"
+  | "Auditoria"
+  | "ItemAuditoria";
 
 /**
  * Registra ação na trilha de auditoria (compliance MAPA / ISO 17025).
