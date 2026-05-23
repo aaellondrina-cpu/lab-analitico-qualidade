@@ -1,0 +1,155 @@
+// LimsQual — Controle de Qualidade para Indústria de Bebidas
+// Schema Prisma — conforme spec em docs/spec-original.txt
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("ANALISTA") // ADMIN | RESPONSAVEL_TECNICO | ANALISTA | LEITURA
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Cliente {
+  id          String    @id @default(cuid())
+  razaoSocial String
+  cnpj        String    @unique
+  responsavel String
+  email       String
+  telefone    String
+  amostras    Amostra[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Produto {
+  id             String          @id @default(cuid())
+  nome           String
+  codigo         String          @unique
+  tipo           String // BEBIDA_ALCOOLICA | NAO_ALCOOLICA | AGUA | MATERIA_PRIMA | EMBALAGEM
+  especificacoes Especificacao[]
+  amostras       Amostra[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model Especificacao {
+  id         String  @id @default(cuid())
+  produto    Produto @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  produtoId  String
+  parametro  String
+  minimo     Float?
+  maximo     Float?
+  unidade    String
+  metodo     String?
+  legislacao String?
+
+  @@index([produtoId])
+}
+
+model PontoColeta {
+  id         String    @id @default(cuid())
+  nome       String
+  tipo       String // MATERIA_PRIMA | PROCESSO | PRODUTO_ACABADO | AGUA | CIP | AMBIENTE
+  localizacao String?
+  amostras   Amostra[]
+  createdAt  DateTime  @default(now())
+}
+
+model Amostra {
+  id              String      @id @default(cuid())
+  numeroOS        String      @unique
+  cliente         Cliente     @relation(fields: [clienteId], references: [id])
+  clienteId       String
+  produto         Produto     @relation(fields: [produtoId], references: [id])
+  produtoId       String
+  lote            String
+  pontoColeta     PontoColeta? @relation(fields: [pontoColetaId], references: [id])
+  pontoColetaId   String?
+  tipoAnalise     String // ROTINA | RETENCAO | REPROCESSO | AUDITORIA | RECLAMACAO
+  status          String      @default("RECEBIDA") // RECEBIDA | EM_ANALISE | AGUARDANDO_APROVACAO | APROVADO | LAUDO_EMITIDO
+  quantidade      Int         @default(1)
+  volume          String?
+  tempTransporte  Float?
+  integridadeOk   Boolean     @default(true)
+  responsavelColeta String?
+  dataColeta      DateTime
+  dataRecebimento DateTime    @default(now())
+  prazoEntrega    DateTime
+  resultados      Resultado[]
+  ncs             NaoConformidade[]
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([clienteId])
+  @@index([produtoId])
+  @@index([lote])
+  @@index([status])
+}
+
+model Resultado {
+  id           String      @id @default(cuid())
+  amostra      Amostra     @relation(fields: [amostraId], references: [id], onDelete: Cascade)
+  amostraId    String
+  parametro    String
+  valor        Float
+  unidade      String
+  metodo       String?
+  conformidade String // CONFORME | NAO_CONFORME | ATENCAO
+  analista     String
+  equipamento  Equipamento? @relation(fields: [equipamentoId], references: [id])
+  equipamentoId String?
+  dataEnsaio   DateTime    @default(now())
+
+  @@index([amostraId])
+  @@index([parametro])
+}
+
+model NaoConformidade {
+  id          String   @id @default(cuid())
+  numero      String   @unique
+  amostra     Amostra  @relation(fields: [amostraId], references: [id])
+  amostraId   String
+  parametro   String
+  valorObtido Float
+  limite      String
+  descricao   String
+  causaRaiz   String?
+  acao        String // LIBERAR | RETER | REPROCESSAR | DESCARTE
+  acaoCorretiva String?
+  responsavel String
+  prazo       DateTime
+  status      String   @default("ABERTA") // ABERTA | EM_TRATAMENTO | ENCERRADA
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([amostraId])
+  @@index([status])
+}
+
+model Equipamento {
+  id                String      @id @default(cuid())
+  nome              String
+  modelo            String
+  numeroSerie       String      @unique
+  fabricante        String?
+  ultimaCalibracao  DateTime
+  proximaCalibracao DateTime
+  certificadoUrl    String?
+  status            String // CALIBRADO | VENCIDO | PROXIMO_VENCIMENTO
+  resultados        Resultado[]
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  @@index([status])
+}

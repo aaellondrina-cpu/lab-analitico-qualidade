@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LimsQual — Controle de Qualidade
 
-## Getting Started
+LIMS (Laboratory Information Management System) para indústria de bebidas e refrigerantes. Em conformidade com **RDC 331/2019**, **ISO 17025** e **ISO 22000**.
 
-First, run the development server:
+## Stack
+
+- **Next.js 16** (App Router) + **TypeScript**
+- **Tailwind v4** (CSS-first config)
+- **Prisma 7** + **PostgreSQL (Neon)**
+- **NextAuth** (autenticação)
+- **bcryptjs** + **zod**
+
+## Setup local
 
 ```bash
+# 1. Variáveis de ambiente
+cp .env.example .env
+# preencha DATABASE_URL e NEXTAUTH_SECRET
+
+# 2. Banco
+npx prisma generate
+npx prisma db push   # cria as tabelas no Neon
+
+# 3. Dev server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# abre em http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Estrutura
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+lims-qualidade/
+├── docs/
+│   └── spec-original.txt        ← prompt/spec original do projeto
+├── prisma/
+│   └── schema.prisma            ← 9 models: User, Cliente, Produto,
+│                                  Especificacao, PontoColeta, Amostra,
+│                                  Resultado, NaoConformidade, Equipamento
+├── src/
+│   ├── app/
+│   │   ├── page.tsx             ← landing pública
+│   │   ├── login/               ← /login
+│   │   └── (app)/               ← rotas autenticadas (com sidebar)
+│   │       ├── dashboard/
+│   │       ├── amostras/        ← list, nova, [id]
+│   │       ├── produtos/
+│   │       ├── clientes/
+│   │       ├── laudos/
+│   │       ├── nao-conformidades/
+│   │       ├── equipamentos/
+│   │       └── relatorios/
+│   ├── components/
+│   │   ├── Logo.tsx
+│   │   ├── Sidebar.tsx
+│   │   └── PageHeader.tsx
+│   └── lib/
+│       └── prisma.ts            ← singleton PrismaClient
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Identidade visual
 
-## Learn More
+- **Petróleo** `#0D3B5E` — header, primários
+- **Água** `#00B4D8` — focus rings, destaques
+- **Logo**: gota d'água + molécula (SVG em `src/components/Logo.tsx`)
 
-To learn more about Next.js, take a look at the following resources:
+## Próximos passos
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Criar projeto Neon e preencher `DATABASE_URL` no `.env`
+2. `npx prisma db push` pra criar as tabelas
+3. Implementar NextAuth credenciais (route handler em `src/app/api/auth/[...nextauth]/route.ts`)
+4. Conectar páginas placeholder ao banco (server components com `prisma`)
+5. Subir pro GitHub: `LAB-ANALITICS-AAEL/lims-qualidade`
+6. Deploy Vercel + env vars
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Status atual
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Scaffold inicial — todas as 11 rotas existem como placeholder. Schema Prisma completo. Sem conexão com banco ainda. Autenticação placeholder (form aponta pra `/api/auth/callback/credentials` mas a rota não existe).
