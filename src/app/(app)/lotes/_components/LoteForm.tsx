@@ -67,13 +67,14 @@ export function LoteForm({ produtos }: { produtos: ProdutoLite[] }) {
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-xs font-medium text-slate-700 mb-1">Início produção</label>
           <input
             name="dataInicioProducao"
             type="datetime-local"
             required
+            lang="pt-BR"
             className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
           />
           {state.errors?.dataInicioProducao && <p className="mt-1 text-xs text-red-600">{state.errors.dataInicioProducao[0]}</p>}
@@ -85,15 +86,62 @@ export function LoteForm({ produtos }: { produtos: ProdutoLite[] }) {
           <input
             name="dataFimProducao"
             type="datetime-local"
+            lang="pt-BR"
             className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
           />
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-xs font-medium text-slate-700 mb-1">Volume total</label>
           <input
             name="volumeTotal"
             className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-            placeholder="5000L, 12000un"
+            placeholder="5000L"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-slate-700 mb-1">Unidades produzidas</label>
+          <input
+            name="unidadesProduzidas"
+            type="number"
+            min={0}
+            step={1}
+            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+            placeholder="12000"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div>
+          <label className="block text-xs font-medium text-slate-700 mb-1">Linha de produção</label>
+          <input
+            name="linha"
+            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+            placeholder="Linha 1"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-slate-700 mb-1">Turno</label>
+          <select
+            name="turno"
+            defaultValue=""
+            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+          >
+            <option value="">— Selecione —</option>
+            <option value="MANHA">Manhã</option>
+            <option value="TARDE">Tarde</option>
+            <option value="NOITE">Noite</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-slate-700 mb-1">Responsável de produção</label>
+          <input
+            name="responsavelProducao"
+            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+            placeholder="Nome completo"
           />
         </div>
       </div>

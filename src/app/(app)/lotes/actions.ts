@@ -18,6 +18,14 @@ const LoteSchema = z.object({
     .optional()
     .transform((s) => (s && s.trim() !== "" ? new Date(s) : null)),
   volumeTotal: z.string().optional().transform((v) => (v && v.trim() !== "" ? v.trim() : null)),
+  unidadesProduzidas: z
+    .string()
+    .optional()
+    .transform((v) => (v && v.trim() !== "" ? Math.trunc(Number(v)) : null))
+    .refine((v) => v === null || (!Number.isNaN(v) && v >= 0), "Unidades inválida"),
+  linha: z.string().optional().transform((v) => (v && v.trim() !== "" ? v.trim() : null)),
+  turno: z.string().optional().transform((v) => (v && v.trim() !== "" ? v.trim() : null)),
+  responsavelProducao: z.string().optional().transform((v) => (v && v.trim() !== "" ? v.trim() : null)),
   observacoes: z.string().optional().transform((v) => (v && v.trim() !== "" ? v.trim() : null)),
 });
 
@@ -40,6 +48,10 @@ export async function criarLote(
     dataInicioProducao: formData.get("dataInicioProducao"),
     dataFimProducao: formData.get("dataFimProducao"),
     volumeTotal: formData.get("volumeTotal"),
+    unidadesProduzidas: formData.get("unidadesProduzidas"),
+    linha: formData.get("linha"),
+    turno: formData.get("turno"),
+    responsavelProducao: formData.get("responsavelProducao"),
     observacoes: formData.get("observacoes"),
   });
 

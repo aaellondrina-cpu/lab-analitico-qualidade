@@ -6,10 +6,25 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/dal";
 import { auditLog } from "@/lib/audit";
 
+const TIPOS_ESPEC = ["FISICOQUIMICO", "MICROBIOLOGICO", "SENSORIAL"] as const;
+
 const EspecificacaoSchema = z.object({
   parametro: z.string().min(1, "Parâmetro obrigatório").trim(),
-  minimo: z.string().optional().transform((v) => (v && v.trim() !== "" ? Number(v) : null)),
-  maximo: z.string().optional().transform((v) => (v && v.trim() !== "" ? Number(v) : null)),
+  tipo: z.enum(TIPOS_ESPEC).default("FISICOQUIMICO"),
+  minimo: z
+    .union([z.string(), z.number(), z.null(), z.undefined()])
+    .transform((v) => {
+      if (v === null || v === undefined) return null;
+      if (typeof v === "number") return v;
+      return v.trim() !== "" ? Number(v) : null;
+    }),
+  maximo: z
+    .union([z.string(), z.number(), z.null(), z.undefined()])
+    .transform((v) => {
+      if (v === null || v === undefined) return null;
+      if (typeof v === "number") return v;
+      return v.trim() !== "" ? Number(v) : null;
+    }),
   unidade: z.string().min(1, "Unidade obrigatória").trim(),
   metodo: z.string().optional().transform((v) => (v && v.trim() !== "" ? v.trim() : null)),
   legislacao: z.string().optional().transform((v) => (v && v.trim() !== "" ? v.trim() : null)),

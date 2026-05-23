@@ -4,9 +4,13 @@ import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { criarProduto, type ProdutoFormState } from "../actions";
 import { TIPOS_PRODUTO } from "@/lib/constants";
+import { TEMPLATES, getTemplate } from "@/lib/templates-especificacoes";
+
+type EspecTipo = "FISICOQUIMICO" | "MICROBIOLOGICO" | "SENSORIAL";
 
 type Espec = {
   parametro: string;
+  tipo: EspecTipo;
   minimo: string;
   maximo: string;
   unidade: string;
@@ -16,11 +20,24 @@ type Espec = {
 
 const emptyEspec: Espec = {
   parametro: "",
+  tipo: "FISICOQUIMICO",
   minimo: "",
   maximo: "",
   unidade: "",
   metodo: "",
   legislacao: "",
+};
+
+const TIPO_LABEL: Record<EspecTipo, string> = {
+  FISICOQUIMICO: "Físico-químico",
+  MICROBIOLOGICO: "Microbiológico",
+  SENSORIAL: "Sensorial",
+};
+
+const TIPO_CLASS: Record<EspecTipo, string> = {
+  FISICOQUIMICO: "bg-cyan-50 text-cyan-700 border-cyan-200",
+  MICROBIOLOGICO: "bg-violet-50 text-violet-700 border-violet-200",
+  SENSORIAL: "bg-amber-50 text-amber-700 border-amber-200",
 };
 
 const initialState: ProdutoFormState = {};
@@ -47,6 +64,21 @@ export function ProdutoForm() {
 
   function removeEspec(i: number) {
     setEspecs((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
+  function aplicarTemplate(id: string) {
+    const t = getTemplate(id);
+    if (!t) return;
+    setEspecs((prev) => {
+      // Mantém os que já têm parâmetro digitado, adiciona os do template
+      const validos = prev.filter((p) => p.parametro.trim() !== "");
+      return [...validos, ...t.itens.map((it) => ({ ...it }))];
+    });
+  }
+
+  function limparTudo() {
+    if (!confirm("Limpar todos os parâmetros?")) return;
+    setEspecs([{ ...emptyEspec }]);
   }
 
   return (
@@ -109,18 +141,51 @@ export function ProdutoForm() {
       </div>
 
       <section>
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
           <h3 className="text-sm font-semibold text-petroleo">Especificações técnicas</h3>
-          <button
-            type="button"
-            onClick={addEspec}
-            className="text-xs text-agua hover:underline"
-          >
-            + Adicionar parâmetro
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={limparTudo}
+              className="text-xs text-slate-500 hover:text-red-600 hover:underline"
+            >
+              Limpar
+            </button>
+            <button
+              type="button"
+              onClick={addEspec}
+              className="text-xs text-agua hover:underline"
+            >
+              + Adicionar parâmetro
+            </button>
+          </div>
         </div>
+
+        {/* Templates prontos */}
+        <div className="rounded-md border border-agua/30 bg-agua/5 p-3 mb-4">
+          <div className="text-xs font-medium text-petroleo mb-2">
+            Aplicar template pronto (físico-químico + microbiológico já preenchidos):
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {TEMPLATES.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => aplicarTemplate(t.id)}
+                title={t.descricao}
+                className="rounded-md border border-agua bg-white px-3 py-1.5 text-xs text-petroleo hover:bg-agua/10"
+              >
+                + {t.nome}
+              </button>
+            ))}
+          </div>
+          <p className="mt-2 text-[11px] text-slate-500">
+            Templates adicionam parâmetros aos já cadastrados. Você pode editar valores depois.
+          </p>
+        </div>
+
         <p className="text-xs text-slate-500 mb-3">
-          Defina os parâmetros e limites aceitáveis. Resultados fora destes valores geram não conformidade automática.
+          Resultados fora destes limites geram não conformidade automática.
         </p>
 
         <div className="space-y-3">
@@ -136,7 +201,21 @@ export function ProdutoForm() {
                     placeholder="pH"
                   />
                 </div>
-                <div className="col-span-4 sm:col-span-2">
+                <div className="col-span-6 sm:col-span-2">
+                  <label className="block text-[11px] text-slate-600 mb-1">Tipo</label>
+                  <select
+                    value={e.tipo}
+                    onChange={(ev) => updateEspec(i, "tipo", ev.target.value)}
+                    className={
+                      "w-full rounded-md border px-2 py-1.5 text-xs " + TIPO_CLASS[e.tipo]
+                    }
+                  >
+                    <option value="FISICOQUIMICO">{TIPO_LABEL.FISICOQUIMICO}</option>
+                    <option value="MICROBIOLOGICO">{TIPO_LABEL.MICROBIOLOGICO}</option>
+                    <option value="SENSORIAL">{TIPO_LABEL.SENSORIAL}</option>
+                  </select>
+                </div>
+                <div className="col-span-3 sm:col-span-1">
                   <label className="block text-[11px] text-slate-600 mb-1">Mín.</label>
                   <input
                     type="number"
@@ -146,7 +225,7 @@ export function ProdutoForm() {
                     className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs"
                   />
                 </div>
-                <div className="col-span-4 sm:col-span-2">
+                <div className="col-span-3 sm:col-span-1">
                   <label className="block text-[11px] text-slate-600 mb-1">Máx.</label>
                   <input
                     type="number"
@@ -156,7 +235,7 @@ export function ProdutoForm() {
                     className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs"
                   />
                 </div>
-                <div className="col-span-4 sm:col-span-2">
+                <div className="col-span-6 sm:col-span-2">
                   <label className="block text-[11px] text-slate-600 mb-1">Unidade</label>
                   <input
                     value={e.unidade}
@@ -174,7 +253,7 @@ export function ProdutoForm() {
                     placeholder="AOAC 970.21"
                   />
                 </div>
-                <div className="col-span-6 sm:col-span-1 flex items-end justify-end">
+                <div className="col-span-12 sm:col-span-1 flex items-end justify-end">
                   {especs.length > 1 && (
                     <button
                       type="button"

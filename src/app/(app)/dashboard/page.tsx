@@ -34,6 +34,12 @@ export default async function DashboardPage() {
     ultimasAmostras,
     conformidade30d,
     ncsRecentes,
+    totalProdutos,
+    totalLotesAtivos,
+    totalInsumos,
+    totalFornecedores,
+    totalClientes,
+    ultimosProdutos,
   ] = await Promise.all([
     prisma.amostra.count({ where: { dataRecebimento: { gte: hoje } } }),
     prisma.amostra.count({ where: { status: "EM_ANALISE" } }),
@@ -68,6 +74,16 @@ export default async function DashboardPage() {
       take: 5,
       include: { amostra: { select: { numeroOS: true } } },
     }),
+    prisma.produto.count(),
+    prisma.lote.count({ where: { status: { in: ["EM_PRODUCAO", "FINALIZADO", "AGUARDANDO_ANALISE"] } } }),
+    prisma.insumo.count(),
+    prisma.fornecedor.count(),
+    prisma.cliente.count(),
+    prisma.produto.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      include: { _count: { select: { especificacoes: true, lotes: true } } },
+    }),
   ]);
 
   const totalResultados30d = conformidade30d.reduce((sum, c) => sum + c._count._all, 0);
@@ -90,7 +106,7 @@ export default async function DashboardPage() {
         subtitle="Visão operacional do laboratório"
       />
 
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         {cards.map((c) => (
           <Link
             key={c.label}
@@ -105,6 +121,15 @@ export default async function DashboardPage() {
             <p className="mt-1 text-xs text-slate-400">{c.hint}</p>
           </Link>
         ))}
+      </section>
+
+      {/* Cadastros */}
+      <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
+        <SmallCard label="Produtos" value={totalProdutos} href="/produtos" />
+        <SmallCard label="Lotes ativos" value={totalLotesAtivos} href="/lotes" />
+        <SmallCard label="Insumos" value={totalInsumos} href="/insumos" />
+        <SmallCard label="Fornecedores" value={totalFornecedores} href="/fornecedores" />
+        <SmallCard label="Clientes" value={totalClientes} href="/clientes" />
       </section>
 
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
@@ -165,6 +190,34 @@ export default async function DashboardPage() {
         </div>
       </section>
 
+      {/* Produtos recém-cadastrados */}
+      {ultimosProdutos.length > 0 && (
+        <section className="mb-6 rounded-lg border border-slate-200 bg-white overflow-hidden">
+          <header className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-petroleo">Produtos cadastrados recentemente</h2>
+            <Link href="/produtos" className="text-xs text-petroleo hover:underline">
+              Ver todos →
+            </Link>
+          </header>
+          <ul className="divide-y divide-slate-100">
+            {ultimosProdutos.map((p) => (
+              <li key={p.id} className="px-4 py-2 text-sm flex items-center gap-3">
+                <span className="font-mono text-xs text-slate-500 w-24">{p.codigo}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="truncate text-slate-800">
+                    {p.nome}
+                    {p.sabor && <span className="text-slate-500"> · {p.sabor}</span>}
+                  </div>
+                  <div className="text-[11px] text-slate-500">
+                    {p._count.especificacoes} parâmetro(s) · {p._count.lotes} lote(s)
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="rounded-lg border border-slate-200 bg-white overflow-hidden">
           <header className="px-4 py-3 border-b border-slate-200">
@@ -213,5 +266,17 @@ export default async function DashboardPage() {
         </div>
       </section>
     </>
+  );
+}
+
+function SmallCard({ label, value, href }: { label: string; value: number; href: string }) {
+  return (
+    <Link
+      href={href}
+      className="rounded-md border border-slate-200 bg-white px-3 py-2 hover:border-agua transition-colors"
+    >
+      <div className="text-[10px] uppercase tracking-wide text-slate-500">{label}</div>
+      <div className="mt-0.5 text-xl font-semibold text-petroleo">{value}</div>
+    </Link>
   );
 }
