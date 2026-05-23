@@ -13,13 +13,3 @@ export async function getConfiguracao(): Promise<Configuracao | null> {
   });
 }
 
-export function formacaoLabel(f: string): string {
-  const map: Record<string, string> = {
-    FARMACEUTICO: "Farmacêutico",
-    QUIMICO: "Químico",
-    BIOLOGO: "Biólogo",
-    ENG_ALIMENTOS: "Eng. de Alimentos",
-    OUTRO: "Outro",
-  };
-  return map[f] ?? f;
-}

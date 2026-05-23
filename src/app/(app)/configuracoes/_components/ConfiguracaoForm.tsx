@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { salvarConfiguracao, type ConfiguracaoFormState } from "../actions";
 import { HeaderPreview } from "./HeaderPreview";
+import { MaskedInput } from "@/components/MaskedInput";
 
 const initialState: ConfiguracaoFormState = {};
 
@@ -72,7 +73,15 @@ export function ConfiguracaoForm({ initial }: { initial: ConfigData | null }) {
             <Field label="Nome Fantasia" name="nomeFantasia" defaultValue={initial?.nomeFantasia ?? ""} />
           </Row>
           <Row>
-            <Field label="CNPJ" name="cnpj" defaultValue={initial?.cnpj ?? ""} errors={state.errors?.cnpj} required />
+            <FieldMasked
+              label="CNPJ"
+              name="cnpj"
+              mask="cnpj"
+              defaultValue={initial?.cnpj ?? ""}
+              errors={state.errors?.cnpj}
+              placeholder="00.000.000/0000-00"
+              required
+            />
             <Field label="Inscrição Estadual" name="inscricaoEstadual" defaultValue={initial?.inscricaoEstadual ?? ""} />
           </Row>
         </Section>
@@ -80,7 +89,15 @@ export function ConfiguracaoForm({ initial }: { initial: ConfigData | null }) {
         <Section title="Endereço">
           <Field label="Logradouro" name="endereco" defaultValue={initial?.endereco ?? ""} errors={state.errors?.endereco} required />
           <Row>
-            <Field label="CEP" name="cep" defaultValue={initial?.cep ?? ""} errors={state.errors?.cep} required />
+            <FieldMasked
+              label="CEP"
+              name="cep"
+              mask="cep"
+              defaultValue={initial?.cep ?? ""}
+              errors={state.errors?.cep}
+              placeholder="00000-000"
+              required
+            />
             <Field label="Cidade" name="cidade" defaultValue={initial?.cidade ?? ""} errors={state.errors?.cidade} required />
             <Field label="UF" name="estado" defaultValue={initial?.estado ?? ""} errors={state.errors?.estado} required />
           </Row>
@@ -88,7 +105,15 @@ export function ConfiguracaoForm({ initial }: { initial: ConfigData | null }) {
 
         <Section title="Contato">
           <Row>
-            <Field label="Telefone" name="telefone" defaultValue={initial?.telefone ?? ""} errors={state.errors?.telefone} required />
+            <FieldMasked
+              label="Telefone"
+              name="telefone"
+              mask="telefone"
+              defaultValue={initial?.telefone ?? ""}
+              errors={state.errors?.telefone}
+              placeholder="(11) 99999-9999"
+              required
+            />
             <Field label="E-mail" name="email" type="email" defaultValue={initial?.email ?? ""} errors={state.errors?.email} required />
           </Row>
           <Row>
@@ -239,6 +264,42 @@ function Field({
         id={name}
         name={name}
         type={type}
+        defaultValue={defaultValue}
+        placeholder={placeholder}
+        required={required}
+        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-agua"
+      />
+      {errors?.length ? <p className="mt-1 text-xs text-red-600">{errors[0]}</p> : null}
+    </div>
+  );
+}
+
+function FieldMasked({
+  label,
+  name,
+  mask,
+  errors,
+  placeholder,
+  defaultValue,
+  required,
+}: {
+  label: string;
+  name: string;
+  mask: "cnpj" | "cpf" | "telefone" | "cep";
+  errors?: string[];
+  placeholder?: string;
+  defaultValue?: string;
+  required?: boolean;
+}) {
+  return (
+    <div>
+      <label htmlFor={name} className="block text-xs font-medium text-slate-700 mb-1">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      <MaskedInput
+        id={name}
+        name={name}
+        mask={mask}
         defaultValue={defaultValue}
         placeholder={placeholder}
         required={required}

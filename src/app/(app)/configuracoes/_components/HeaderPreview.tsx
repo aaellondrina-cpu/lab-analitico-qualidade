@@ -1,4 +1,4 @@
-import { formacaoLabel } from "@/lib/configuracao";
+import { formacaoLabel } from "@/lib/configuracao-labels";
 
 type Props = {
   razaoSocial?: string | null;

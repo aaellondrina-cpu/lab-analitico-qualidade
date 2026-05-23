@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/dal";
 import { statusLote } from "@/lib/constants";
 import { LoteStatusActions } from "./_components/LoteStatusActions";
+import { ProdutoFilter } from "./_components/ProdutoFilter";
 
 function fmtDate(d: Date | null | undefined) {
   if (!d) return "—";
@@ -77,23 +78,7 @@ export default async function LotesPage({
             </Link>
           );
         })}
-        {produtos.length > 0 && (
-          <select
-            defaultValue={sp.produto ?? ""}
-            onChange={(e) => {
-              const url = new URL(window.location.href);
-              if (e.target.value) url.searchParams.set("produto", e.target.value);
-              else url.searchParams.delete("produto");
-              window.location.href = url.toString();
-            }}
-            className="rounded-md border border-slate-300 px-2 py-1 text-xs"
-          >
-            <option value="">Todos os produtos</option>
-            {produtos.map((p) => (
-              <option key={p.id} value={p.id}>{p.codigo} — {p.nome}</option>
-            ))}
-          </select>
-        )}
+        {produtos.length > 0 && <ProdutoFilter produtos={produtos} />}
       </div>
 
       {lotes.length === 0 ? (

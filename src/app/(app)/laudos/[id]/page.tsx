@@ -5,7 +5,8 @@ import { PageHeader } from "@/components/PageHeader";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/dal";
 import { descreverLimite } from "@/lib/conformidade";
-import { getConfiguracao, formacaoLabel } from "@/lib/configuracao";
+import { getConfiguracao } from "@/lib/configuracao";
+import { formacaoLabel } from "@/lib/configuracao-labels";
 import { PrintButton } from "../_components/PrintButton";
 
 const CONCLUSAO_LABEL: Record<string, string> = {
