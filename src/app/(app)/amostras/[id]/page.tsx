@@ -1,61 +1,191 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/PageHeader";
+import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/dal";
+import { statusAmostra, tipoAnaliseLabel } from "@/lib/constants";
+import { CONFORMIDADE_META, descreverLimite, type Conformidade } from "@/lib/conformidade";
+import { ResultadoForm } from "../_components/ResultadoForm";
+import { AprovarButton } from "../_components/AprovarButton";
+
+function fmtDate(d: Date | null | undefined) {
+  if (!d) return "—";
+  return new Date(d).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+}
 
 export default async function AmostraDetalhePage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const user = await requireUser();
   const { id } = await params;
+
+  const amostra = await prisma.amostra.findUnique({
+    where: { id },
+    include: {
+      cliente: true,
+      produto: { include: { especificacoes: true } },
+      lote: true,
+      pontoColeta: true,
+      resultados: { orderBy: { dataEnsaio: "desc" } },
+      ncs: { orderBy: { createdAt: "desc" } },
+    },
+  });
+
+  if (!amostra) notFound();
+
+  const equipamentos = await prisma.equipamento.findMany({
+    select: { id: true, nome: true, status: true },
+    orderBy: { nome: "asc" },
+  });
+
+  const s = statusAmostra(amostra.status);
+  const canApprove = (user.role === "ADMIN" || user.role === "RESPONSAVEL_TECNICO")
+    && amostra.resultados.length > 0
+    && amostra.ncs.filter((n) => n.status !== "ENCERRADA").length === 0
+    && amostra.status !== "APROVADO"
+    && amostra.status !== "LAUDO_EMITIDO";
 
   return (
     <>
       <PageHeader
-        title={`Amostra ${id}`}
-        subtitle="Detalhe + lançamento de resultados por parâmetro"
+        title={amostra.numeroOS}
+        subtitle={`${amostra.produto.nome} · Lote ${amostra.lote.numero}${amostra.lote.sabor ? ` · ${amostra.lote.sabor}` : ""}`}
+        action={
+          <div className="flex items-center gap-2">
+            <span className={`rounded-full px-3 py-1 text-xs ${s.color}`}>{s.label}</span>
+            {amostra.status !== "APROVADO" && amostra.status !== "LAUDO_EMITIDO" && (
+              <AprovarButton id={amostra.id} canApprove={canApprove} />
+            )}
+            {amostra.status === "APROVADO" && (
+              <Link
+                href={`/laudos/emitir/${amostra.id}`}
+                className="rounded-md bg-cyan-600 px-3 py-2 text-xs font-medium text-white hover:bg-cyan-700"
+              >
+                Emitir laudo →
+              </Link>
+            )}
+          </div>
+        }
       />
 
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 rounded-lg border border-slate-200 bg-white p-4">
-          <h2 className="text-sm font-semibold text-petroleo mb-3">Resultados</h2>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+        <Info k="Cliente" v={amostra.cliente.razaoSocial} />
+        <Info k="Tipo de análise" v={tipoAnaliseLabel(amostra.tipoAnalise)} />
+        <Info k="Ponto de coleta" v={amostra.pontoColeta?.nome ?? "—"} />
+        <Info k="Data coleta" v={fmtDate(amostra.dataColeta)} />
+        <Info k="Recebimento" v={fmtDate(amostra.dataRecebimento)} />
+        <Info k="Prazo entrega" v={fmtDate(amostra.prazoEntrega)} />
+        <Info k="Volume" v={amostra.volume ?? "—"} />
+        <Info k="Temp. transporte" v={amostra.tempTransporte !== null ? `${amostra.tempTransporte} °C` : "—"} />
+        <Info k="Integridade" v={amostra.integridadeOk ? "OK" : "Comprometida"} />
+      </div>
+
+      <section className="rounded-lg border border-slate-200 bg-white overflow-hidden mb-4">
+        <header className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+          <h2 className="text-sm font-semibold text-petroleo">Resultados ({amostra.resultados.length})</h2>
+          {amostra.produto.especificacoes.length > 0 && (
+            <span className="text-xs text-slate-500">{amostra.produto.especificacoes.length} parâmetro(s) especificado(s)</span>
+          )}
+        </header>
+        {amostra.resultados.length === 0 ? (
+          <div className="px-4 py-8 text-center text-sm text-slate-400">Nenhum resultado lançado ainda.</div>
+        ) : (
           <table className="w-full text-sm">
-            <thead className="text-left text-xs uppercase tracking-wide text-slate-500">
+            <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
               <tr>
-                <th className="py-2">Parâmetro</th>
-                <th className="py-2">Valor</th>
-                <th className="py-2">Unidade</th>
-                <th className="py-2">VMP</th>
-                <th className="py-2">Conform.</th>
+                <th className="px-4 py-2">Parâmetro</th>
+                <th className="px-4 py-2 text-right">Valor</th>
+                <th className="px-4 py-2">Unid.</th>
+                <th className="px-4 py-2">Limite</th>
+                <th className="px-4 py-2">Conformidade</th>
+                <th className="px-4 py-2">Analista</th>
+                <th className="px-4 py-2">Data</th>
               </tr>
             </thead>
-            <tbody>
-              <tr>
-                <td colSpan={5} className="py-8 text-center text-slate-400">
-                  Nenhum resultado lançado ainda.
-                </td>
-              </tr>
+            <tbody className="divide-y divide-slate-100">
+              {amostra.resultados.map((r) => {
+                const espec = amostra.produto.especificacoes.find(
+                  (e) => e.parametro.toLowerCase() === r.parametro.toLowerCase(),
+                );
+                const meta = CONFORMIDADE_META[r.conformidade as Conformidade] ?? CONFORMIDADE_META.CONFORME;
+                return (
+                  <tr key={r.id}>
+                    <td className="px-4 py-2 font-medium text-slate-900">{r.parametro}</td>
+                    <td className="px-4 py-2 text-right font-mono">{r.valor}</td>
+                    <td className="px-4 py-2 text-slate-600">{r.unidade}</td>
+                    <td className="px-4 py-2 text-xs text-slate-600">
+                      {espec ? descreverLimite(espec.minimo, espec.maximo, espec.unidade) : "—"}
+                    </td>
+                    <td className="px-4 py-2">
+                      <span className={`rounded-full px-2 py-0.5 text-[11px] ${meta.color}`}>{meta.icon} {meta.label}</span>
+                    </td>
+                    <td className="px-4 py-2 text-xs text-slate-700">{r.analista}</td>
+                    <td className="px-4 py-2 text-xs text-slate-500">{fmtDate(r.dataEnsaio)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
-        </div>
-
-        <aside className="rounded-lg border border-slate-200 bg-white p-4 text-sm space-y-2">
-          <h2 className="text-sm font-semibold text-petroleo">Dados da amostra</h2>
-          <Row k="OS" v={id} />
-          <Row k="Cliente" v="—" />
-          <Row k="Produto" v="—" />
-          <Row k="Lote" v="—" />
-          <Row k="Status" v="RECEBIDA" />
-          <Row k="Prazo" v="—" />
-        </aside>
+        )}
       </section>
+
+      {amostra.status !== "APROVADO" && amostra.status !== "LAUDO_EMITIDO" && (
+        <section className="rounded-lg border border-slate-200 bg-white p-4 mb-4">
+          <h2 className="text-sm font-semibold text-petroleo mb-3">Lançar resultado</h2>
+          {amostra.produto.especificacoes.length === 0 && (
+            <p className="mb-3 rounded-md bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
+              ⚠ Este produto não tem especificações cadastradas. Resultados serão registrados sem avaliação de conformidade.
+            </p>
+          )}
+          <ResultadoForm
+            amostraId={amostra.id}
+            especificacoes={amostra.produto.especificacoes.map((e) => ({
+              parametro: e.parametro,
+              unidade: e.unidade,
+              metodo: e.metodo,
+              minimo: e.minimo,
+              maximo: e.maximo,
+            }))}
+            equipamentos={equipamentos}
+            defaultAnalista={user.name ?? user.email ?? ""}
+          />
+        </section>
+      )}
+
+      {amostra.ncs.length > 0 && (
+        <section className="rounded-lg border border-red-200 bg-red-50 overflow-hidden">
+          <header className="border-b border-red-200 px-4 py-3">
+            <h2 className="text-sm font-semibold text-red-900">⚠ Não Conformidades ({amostra.ncs.length})</h2>
+          </header>
+          <ul className="divide-y divide-red-100">
+            {amostra.ncs.map((nc) => (
+              <li key={nc.id} className="px-4 py-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <div className="font-mono text-xs text-red-700">{nc.numero}</div>
+                  <span className="rounded-full bg-white border border-red-300 px-2 py-0.5 text-[11px] text-red-700">{nc.status}</span>
+                </div>
+                <div className="mt-1 text-slate-800">
+                  <strong>{nc.parametro}:</strong> {nc.descricao}
+                </div>
+                <div className="mt-1 text-xs text-slate-600">
+                  Responsável: {nc.responsavel} · Prazo: {fmtDate(nc.prazo)}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </>
   );
 }
 
-function Row({ k, v }: { k: string; v: string }) {
+function Info({ k, v }: { k: string; v: string }) {
   return (
-    <div className="flex justify-between border-b border-slate-100 pb-1">
-      <span className="text-slate-500">{k}</span>
-      <span className="text-slate-900 font-medium">{v}</span>
+    <div className="rounded-md border border-slate-200 bg-white px-3 py-2">
+      <div className="text-[11px] uppercase tracking-wide text-slate-500">{k}</div>
+      <div className="mt-0.5 text-sm text-slate-900">{v}</div>
     </div>
   );
 }

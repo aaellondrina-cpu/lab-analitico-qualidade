@@ -6,7 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  // TEMP: sqlite pra dev local. Reverter pra "postgresql" quando DATABASE_URL do Neon estiver configurado.
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -37,8 +38,10 @@ model Produto {
   nome           String
   codigo         String          @unique
   tipo           String // BEBIDA_ALCOOLICA | NAO_ALCOOLICA | AGUA | MATERIA_PRIMA | EMBALAGEM
+  sabor          String?         // p/ refrigerantes: Cola, Guarana, Laranja, Limao, etc.
   especificacoes Especificacao[]
   amostras       Amostra[]
+  lotes          Lote[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 }
@@ -66,6 +69,25 @@ model PontoColeta {
   createdAt  DateTime  @default(now())
 }
 
+model Lote {
+  id                  String   @id @default(cuid())
+  numero              String   @unique
+  produto             Produto  @relation(fields: [produtoId], references: [id])
+  produtoId           String
+  sabor               String?
+  dataInicioProducao  DateTime
+  dataFimProducao     DateTime?
+  volumeTotal         String?  // ex: "5000L", "12000un"
+  status              String   @default("EM_PRODUCAO") // EM_PRODUCAO | FINALIZADO | LIBERADO | RETIDO | DESCARTADO
+  observacoes         String?
+  amostras            Amostra[]
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([produtoId])
+  @@index([status])
+}
+
 model Amostra {
   id              String      @id @default(cuid())
   numeroOS        String      @unique
@@ -73,7 +95,8 @@ model Amostra {
   clienteId       String
   produto         Produto     @relation(fields: [produtoId], references: [id])
   produtoId       String
-  lote            String
+  lote            Lote        @relation(fields: [loteId], references: [id])
+  loteId          String
   pontoColeta     PontoColeta? @relation(fields: [pontoColetaId], references: [id])
   pontoColetaId   String?
   tipoAnalise     String // ROTINA | RETENCAO | REPROCESSO | AUDITORIA | RECLAMACAO
@@ -88,12 +111,13 @@ model Amostra {
   prazoEntrega    DateTime
   resultados      Resultado[]
   ncs             NaoConformidade[]
+  laudo           Laudo?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
   @@index([clienteId])
   @@index([produtoId])
-  @@index([lote])
+  @@index([loteId])
   @@index([status])
 }
 
@@ -152,4 +176,41 @@ model Equipamento {
   updatedAt         DateTime    @updatedAt
 
   @@index([status])
+}
+
+model Laudo {
+  id              String   @id @default(cuid())
+  numero          String   @unique // L-2026-NNNN
+  amostra         Amostra  @relation(fields: [amostraId], references: [id])
+  amostraId       String   @unique
+  conclusao       String   // APROVADO | REPROVADO | APROVADO_COM_RESTRICOES
+  observacoes     String?
+  emitidoPorId    String
+  emitidoPorNome  String
+  emitidoPorRole  String
+  dataEmissao     DateTime @default(now())
+  qrToken         String   @unique
+  createdAt       DateTime @default(now())
+
+  @@index([numero])
+}
+
+// Trilha de auditoria para compliance MAPA / ISO 17025.
+// Append-only: nunca atualizar ou deletar registros.
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  userName   String?
+  userRole   String?
+  action     String   // CREATE | UPDATE | DELETE | SIGN | APPROVE | LOGIN | LOGOUT
+  entity     String   // Cliente | Produto | Lote | Amostra | Resultado | NC | Laudo | Equipamento | User
+  entityId   String?
+  diff       String?  // JSON: { before, after } ou payload da ação
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([userId])
+  @@index([createdAt])
 }
