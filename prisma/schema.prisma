@@ -39,6 +39,10 @@ model Produto {
   codigo         String          @unique
   tipo           String // BEBIDA_ALCOOLICA | NAO_ALCOOLICA | AGUA | MATERIA_PRIMA | EMBALAGEM
   sabor          String?         // p/ refrigerantes: Cola, Guarana, Laranja, Limao, etc.
+  volume         Float?          // ml — 200, 350, 600, 1000, 1500, 2000, 3000
+  tipoEmbalagem  String?         // PET | VIDRO_RETORNAVEL | VIDRO_NAO_RETORNAVEL | LATA
+  versao         String?         // REGULAR | DIET | LIGHT | ZERO_ACUCAR | ZERO_SODIO
+  validadeDias   Int?            // shelf life em dias
   especificacoes Especificacao[]
   amostras       Amostra[]
   lotes          Lote[]
@@ -51,6 +55,7 @@ model Especificacao {
   produto    Produto @relation(fields: [produtoId], references: [id], onDelete: Cascade)
   produtoId  String
   parametro  String
+  tipo       String  @default("FISICOQUIMICO") // FISICOQUIMICO | MICROBIOLOGICO | SENSORIAL
   minimo     Float?
   maximo     Float?
   unidade    String
@@ -58,6 +63,7 @@ model Especificacao {
   legislacao String?
 
   @@index([produtoId])
+  @@index([tipo])
 }
 
 model PontoColeta {
@@ -78,7 +84,11 @@ model Lote {
   dataInicioProducao  DateTime
   dataFimProducao     DateTime?
   volumeTotal         String?  // ex: "5000L", "12000un"
-  status              String   @default("EM_PRODUCAO") // EM_PRODUCAO | FINALIZADO | LIBERADO | RETIDO | DESCARTADO
+  unidadesProduzidas  Int?     // contagem de unidades
+  linha               String?  // Linha 1, Linha 2...
+  turno               String?  // MANHA | TARDE | NOITE
+  responsavelProducao String?
+  status              String   @default("EM_PRODUCAO") // EM_PRODUCAO | FINALIZADO | LIBERADO | RETIDO | DESCARTADO | AGUARDANDO_ANALISE | APROVADO | REPROVADO | REPROCESSO | EXPEDIDO
   observacoes         String?
   amostras            Amostra[]
   consumos            ConsumoInsumo[]
@@ -142,28 +152,36 @@ model Resultado {
   equipamento  Equipamento? @relation(fields: [equipamentoId], references: [id])
   equipamentoId String?
   dataEnsaio   DateTime    @default(now())
+  nc           NaoConformidade?
 
   @@index([amostraId])
   @@index([parametro])
 }
 
 model NaoConformidade {
-  id          String   @id @default(cuid())
-  numero      String   @unique
-  amostra     Amostra  @relation(fields: [amostraId], references: [id])
-  amostraId   String
-  parametro   String
-  valorObtido Float
-  limite      String
-  descricao   String
-  causaRaiz   String?
-  acao        String // LIBERAR | RETER | REPROCESSAR | DESCARTE
+  id           String     @id @default(cuid())
+  numero       String     @unique
+  amostra      Amostra    @relation(fields: [amostraId], references: [id])
+  amostraId    String
+  // Vínculo 1:1 opcional com Resultado (spec).
+  // NCs antigas ficam apenas com amostraId; NCs criadas a partir
+  // de um resultado fora-de-especificação populam resultadoId.
+  resultado    Resultado? @relation(fields: [resultadoId], references: [id])
+  resultadoId  String?    @unique
+  parametro    String
+  valorObtido  Float
+  limite       String
+  descricao    String
+  causaRaiz    String?
+  // Disposição imediata: LIBERAR | RETER | REPROCESSAR | DESCARTE
+  // (também aceito como "disposicao" para alinhar com spec — mesma semântica)
+  acao         String
   acaoCorretiva String?
-  responsavel String
-  prazo       DateTime
-  status      String   @default("ABERTA") // ABERTA | EM_TRATAMENTO | ENCERRADA
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  responsavel  String
+  prazo        DateTime
+  status       String     @default("ABERTA") // ABERTA | EM_TRATAMENTO | ENCERRADA
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
   @@index([amostraId])
   @@index([status])
