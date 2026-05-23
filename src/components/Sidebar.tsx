@@ -26,6 +26,9 @@ const sections: NavSection[] = [
     items: [
       { href: "/produtos", label: "Produtos" },
       { href: "/clientes", label: "Clientes" },
+      { href: "/fornecedores", label: "Fornecedores" },
+      { href: "/insumos", label: "Insumos" },
+      { href: "/embalagens", label: "Embalagens" },
       { href: "/pontos-coleta", label: "Pontos de Coleta" },
       { href: "/equipamentos", label: "Equipamentos" },
     ],
@@ -33,6 +36,7 @@ const sections: NavSection[] = [
   {
     title: "Compliance",
     items: [
+      { href: "/cip", label: "CIP" },
       { href: "/relatorios", label: "Relatórios" },
       { href: "/auditoria", label: "Auditoria" },
     ],
