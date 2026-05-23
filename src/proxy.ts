@@ -9,6 +9,7 @@ export async function proxy(req: NextRequest) {
   const isPublic =
     PUBLIC_PATHS.includes(pathname) ||
     pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/verificar/") ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon") ||
     /\.(svg|png|jpg|jpeg|webp|ico|css|js|map)$/i.test(pathname);
