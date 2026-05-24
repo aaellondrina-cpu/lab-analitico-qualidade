@@ -1,77 +1,55 @@
 # LimsQual — Controle de Qualidade
 
-LIMS (Laboratory Information Management System) para indústria de bebidas e refrigerantes. Em conformidade com **RDC 331/2019**, **ISO 17025** e **ISO 22000**.
+LIMS (Laboratory Information Management System) para indústria de bebidas e refrigerantes. Em conformidade com **RDC 331/2019**, **ISO 17025**, **ISO 22000** e **FSSC 22000**.
 
 ## Stack
 
 - **Next.js 16** (App Router) + **TypeScript**
 - **Tailwind v4** (CSS-first config)
-- **Prisma 7** + **PostgreSQL (Neon)**
+- **Prisma 6** + **PostgreSQL (Neon)**
 - **NextAuth** (autenticação)
 - **bcryptjs** + **zod**
 
 ## Setup local
 
 ```bash
-# 1. Variáveis de ambiente
-cp .env.example .env
-# preencha DATABASE_URL e NEXTAUTH_SECRET
+# 1. Variáveis de ambiente — puxe do Vercel ou crie manualmente
+npx vercel env pull .env
+# ou copie do Vercel dashboard: DATABASE_URL, NEXTAUTH_SECRET, NEXTAUTH_URL
 
-# 2. Banco
+# 2. Banco (cria as tabelas no Neon)
 npx prisma generate
-npx prisma db push   # cria as tabelas no Neon
+npx prisma db push
 
-# 3. Dev server
+# 3. Seed admin
+npm run db:seed
+# admin@limsqual.app / Admin@2026
+
+# 4. Dev server
 npm run dev
-# abre em http://localhost:3000
+# http://localhost:3000
 ```
 
-## Estrutura
+## Módulos
 
-```
-lims-qualidade/
-├── docs/
-│   └── spec-original.txt        ← prompt/spec original do projeto
-├── prisma/
-│   └── schema.prisma            ← 9 models: User, Cliente, Produto,
-│                                  Especificacao, PontoColeta, Amostra,
-│                                  Resultado, NaoConformidade, Equipamento
-├── src/
-│   ├── app/
-│   │   ├── page.tsx             ← landing pública
-│   │   ├── login/               ← /login
-│   │   └── (app)/               ← rotas autenticadas (com sidebar)
-│   │       ├── dashboard/
-│   │       ├── amostras/        ← list, nova, [id]
-│   │       ├── produtos/
-│   │       ├── clientes/
-│   │       ├── laudos/
-│   │       ├── nao-conformidades/
-│   │       ├── equipamentos/
-│   │       └── relatorios/
-│   ├── components/
-│   │   ├── Logo.tsx
-│   │   ├── Sidebar.tsx
-│   │   └── PageHeader.tsx
-│   └── lib/
-│       └── prisma.ts            ← singleton PrismaClient
-```
+**Operação** — Amostras, Lotes, Laudos (com QR code + verificação pública), Não Conformidades
+
+**Cadastros** — Produtos, Clientes, Fornecedores, Insumos, Embalagens, Pontos de Coleta, Equipamentos (com calibração)
+
+**Qualidade** — CEP/SPC (cartas Shewhart, Cp/Cpk, Regras de Nelson), APPCC/HACCP (PCCs + monitoramento)
+
+**Pessoas & Docs** — Documentos (POPs/ITPs com versionamento), Colaboradores, Treinamentos (matriz)
+
+**Compliance** — CIP (Clean-In-Place), Auditorias formais (BPF/ISO/ANVISA/MAPA), Relatórios (rastreabilidade por lote, boletim mensal, CSV), Trilha de auditoria, Configurações de identidade do laboratório
 
 ## Identidade visual
 
 - **Petróleo** `#0D3B5E` — header, primários
 - **Água** `#00B4D8` — focus rings, destaques
-- **Logo**: gota d'água + molécula (SVG em `src/components/Logo.tsx`)
 
-## Próximos passos
+## Deploy
 
-1. Criar projeto Neon e preencher `DATABASE_URL` no `.env`
-2. `npx prisma db push` pra criar as tabelas
-3. Implementar NextAuth credenciais (route handler em `src/app/api/auth/[...nextauth]/route.ts`)
-4. Conectar páginas placeholder ao banco (server components com `prisma`)
-5. Subir pro GitHub: `LAB-ANALITICS-AAEL/lims-qualidade`
-6. Deploy Vercel + env vars
-
-## Status atual
-
-Scaffold inicial — todas as 11 rotas existem como placeholder. Schema Prisma completo. Sem conexão com banco ainda. Autenticação placeholder (form aponta pra `/api/auth/callback/credentials` mas a rota não existe).
+- **GitHub**: `LAB-ANALITICS-AAEL/lims-qualidade`
+- **Vercel**: `lims-qualidade.vercel.app`
+- **Banco**: Neon (Postgres)
+- Build roda `prisma generate && prisma db push --accept-data-loss && next build` automaticamente
