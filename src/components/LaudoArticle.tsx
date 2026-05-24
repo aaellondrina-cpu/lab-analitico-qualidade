@@ -48,7 +48,10 @@ export function LaudoArticle({ laudo, config, verifyUrl }: Props) {
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=0&data=${encodeURIComponent(verifyUrl)}`;
 
   return (
-    <article className="rounded-lg border border-slate-300 bg-white p-8 print:border-0 print:p-0">
+    <article
+      id="laudo-article"
+      className="rounded-lg border border-slate-300 bg-white p-8 print:border-0 print:p-0"
+    >
       <header className="pb-4 border-b border-slate-300">
         <div className="flex justify-between items-start gap-6">
           <div className="flex items-start gap-4 flex-1">

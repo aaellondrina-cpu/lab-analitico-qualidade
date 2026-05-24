@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/PageHeader";
 import { LaudoArticle } from "@/components/LaudoArticle";
+import { DownloadLaudoPDF } from "@/components/DownloadLaudoPDF";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/dal";
 import { getConfiguracao } from "@/lib/configuracao";
@@ -54,6 +55,7 @@ export default async function LaudoDetalhePage({
             <Link href="/laudos" className="text-sm text-slate-600 hover:underline px-3 py-2">
               ← Voltar
             </Link>
+            <DownloadLaudoPDF numeroLaudo={laudo.numero} />
             <PrintButton />
           </div>
         }
