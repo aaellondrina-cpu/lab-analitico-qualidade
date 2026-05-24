@@ -22,7 +22,7 @@ export type EquipamentoFormState = {
   ok?: boolean;
 };
 
-export function statusFromDates(proximaCalibracao: Date): string {
+function statusFromDates(proximaCalibracao: Date): string {
   const now = new Date();
   const trintaDias = new Date(now);
   trintaDias.setDate(trintaDias.getDate() + 30);
