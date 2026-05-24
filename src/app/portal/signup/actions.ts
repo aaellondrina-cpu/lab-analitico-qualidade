@@ -18,21 +18,23 @@ export async function signupPortalCliente(
   _prev: SignupState,
   formData: FormData,
 ): Promise<SignupState> {
-  const razaoSocial = String(formData.get("razaoSocial") ?? "").trim();
-  const cnpj = String(formData.get("cnpj") ?? "").trim();
+  const razaoSocialRaw = String(formData.get("razaoSocial") ?? "").trim();
+  const cnpjRaw = String(formData.get("cnpj") ?? "").trim();
   const responsavel = String(formData.get("responsavel") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const telefone = String(formData.get("telefone") ?? "").trim();
   const password = String(formData.get("password") ?? "");
 
-  if (!razaoSocial || !cnpj || !responsavel || !email || !password) {
-    return { error: "Preencha todos os campos obrigatórios." };
+  // Apenas nome, e-mail e senha são obrigatórios — empresa e CNPJ
+  // são opcionais (auto-preenchidos pra reduzir fricção no signup demo).
+  if (!responsavel || !email || !password) {
+    return { error: "Preencha nome, e-mail e senha." };
   }
   if (password.length < 6) {
     return { error: "A senha precisa ter pelo menos 6 caracteres." };
   }
-  if (onlyDigits(cnpj).length !== 14) {
-    return { error: "CNPJ inválido — informe 14 dígitos." };
+  if (cnpjRaw && onlyDigits(cnpjRaw).length !== 14) {
+    return { error: "CNPJ inválido — informe 14 dígitos ou deixe em branco." };
   }
 
   const usage = await getDemoUsage();
@@ -42,9 +44,15 @@ export async function signupPortalCliente(
     };
   }
 
-  const cnpjExistente = await prisma.cliente.findUnique({ where: { cnpj } });
-  if (cnpjExistente) {
-    return { error: "Já existe um cliente cadastrado com esse CNPJ." };
+  const razaoSocial = razaoSocialRaw || `Empresa de ${responsavel}`;
+  // CNPJ placeholder único quando não informado — campo é @unique no schema.
+  const cnpj = cnpjRaw || `DEMO-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+
+  if (cnpjRaw) {
+    const cnpjExistente = await prisma.cliente.findUnique({ where: { cnpj } });
+    if (cnpjExistente) {
+      return { error: "Já existe um cliente cadastrado com esse CNPJ." };
+    }
   }
   const emailExistente = await prisma.clienteUser.findUnique({ where: { email } });
   if (emailExistente) {
