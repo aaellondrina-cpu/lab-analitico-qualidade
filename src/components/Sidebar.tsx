@@ -35,6 +35,21 @@ const sections: NavSection[] = [
     ],
   },
   {
+    title: "Qualidade",
+    items: [
+      { href: "/cep", label: "CEP / SPC" },
+      { href: "/appcc", label: "APPCC / HACCP" },
+    ],
+  },
+  {
+    title: "Pessoas & Docs",
+    items: [
+      { href: "/documentos", label: "Documentos" },
+      { href: "/colaboradores", label: "Colaboradores" },
+      { href: "/treinamentos", label: "Treinamentos" },
+    ],
+  },
+  {
     title: "Compliance",
     items: [
       { href: "/cip", label: "CIP" },

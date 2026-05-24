@@ -49,6 +49,7 @@ model Produto {
   especificacoes Especificacao[]
   amostras       Amostra[]
   lotes          Lote[]
+  cartas         CartaControle[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 }
@@ -448,4 +449,142 @@ model AuditLog {
   @@index([entity, entityId])
   @@index([userId])
   @@index([createdAt])
+}
+
+// =========================================================
+// MÓDULO 10 — CEP/SPC (Controle Estatístico de Processo)
+// Cartas de Controle X̄ e R; Cp/Cpk; Regras de Nelson.
+// Cache recalculável a partir dos Resultados existentes.
+// =========================================================
+model CartaControle {
+  id            String   @id @default(cuid())
+  produto       Produto  @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  produtoId     String
+  parametro     String
+  amostras      Int      // n de pontos usados
+  media         Float    // X̄ geral (linha central)
+  desvio        Float    // σ estimado
+  lcs           Float    // média + 3σ
+  lc            Float
+  lci           Float    // média − 3σ
+  lse           Float?   // do cadastro do produto
+  lie           Float?
+  cp            Float?
+  cpk           Float?
+  classificacao String?  // CAPAZ | ATENCAO | INCAPAZ
+  alertasNelson String?  // CSV — REGRA_1 | REGRA_2 | REGRA_3
+  recalculadaEm DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([produtoId, parametro])
+  @@index([classificacao])
+}
+
+// =========================================================
+// MÓDULO 11 — APPCC/HACCP
+// Análise de Perigos + Pontos Críticos de Controle.
+// Atende ISO 22000, FSSC 22000, RDC 216/ANVISA.
+// =========================================================
+model PCC {
+  id               String             @id @default(cuid())
+  numero           String             @unique // PCC-01, PCC-02
+  etapa            String             // Pasteurização | Carbonatação | Envase
+  perigo           String             // descrição do perigo
+  tipoPerigo       String             // BIOLOGICO | QUIMICO | FISICO | RADIOLOGICO
+  probabilidade    String             // ALTA | MEDIA | BAIXA
+  severidade       String             // ALTA | MEDIA | BAIXA
+  medidaControle   String
+  limiteCriticoMin Float?
+  limiteCriticoMax Float?
+  unidade          String
+  frequencia       String             // "a cada batelada", "horário"...
+  responsavel      String
+  acaoCorretiva    String
+  ativo            Boolean            @default(true)
+  monitoramentos   MonitoramentoPCC[]
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  @@index([etapa])
+  @@index([ativo])
+}
+
+model MonitoramentoPCC {
+  id          String   @id @default(cuid())
+  pcc         PCC      @relation(fields: [pccId], references: [id], onDelete: Cascade)
+  pccId       String
+  valor       Float
+  conforme    Boolean
+  responsavel String
+  observacao  String?
+  data        DateTime @default(now())
+
+  @@index([pccId])
+  @@index([data])
+}
+
+// =========================================================
+// MÓDULO 12 — DOCUMENTOS + TREINAMENTOS
+// Controle de POPs, ITPs, manuais com versionamento.
+// Matriz de treinamento colaborador × documento.
+// Atende ISO 17025, ISO 22000, FSSC 22000.
+// =========================================================
+model Documento {
+  id                 String        @id @default(cuid())
+  codigo             String        // POP-LAB-001
+  titulo             String
+  tipo               String        // POP | ITP | FORMULARIO | MANUAL | PROCEDIMENTO | ESPECIFICACAO
+  versao             String        // 1.0, 2.0
+  arquivoUrl         String?
+  status             String        @default("VIGENTE") // VIGENTE | OBSOLETO | EM_REVISAO
+  aprovadoPor        String
+  dataAprovacao      DateTime
+  revisaoEm          DateTime?     // próxima revisão programada
+  observacoes        String?
+  versaoAnterior     Documento?    @relation("Versoes", fields: [versaoAnteriorId], references: [id])
+  versaoAnteriorId   String?
+  versoesPosteriores Documento[]   @relation("Versoes")
+  treinamentos       Treinamento[]
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  @@index([codigo])
+  @@index([status])
+  @@index([revisaoEm])
+}
+
+model Colaborador {
+  id           String        @id @default(cuid())
+  nome         String
+  cargo        String
+  setor        String
+  email        String?
+  ativo        Boolean       @default(true)
+  treinamentos Treinamento[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([setor])
+  @@index([ativo])
+}
+
+model Treinamento {
+  id            String      @id @default(cuid())
+  colaborador   Colaborador @relation(fields: [colaboradorId], references: [id], onDelete: Cascade)
+  colaboradorId String
+  documento     Documento   @relation(fields: [documentoId], references: [id])
+  documentoId   String
+  dataRealizado DateTime
+  instrutor     String
+  forma         String      // PRESENCIAL | ONLINE | ON_THE_JOB
+  validade      DateTime?
+  status        String      @default("TREINADO") // TREINADO | VENCIDO | EM_DIA
+  evidenciaUrl  String?
+  observacoes   String?
+  createdAt     DateTime    @default(now())
+
+  @@index([colaboradorId])
+  @@index([documentoId])
+  @@index([status])
+  @@index([validade])
 }

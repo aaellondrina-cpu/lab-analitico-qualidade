@@ -24,7 +24,13 @@ export type AuditEntity =
   | "RegistroCIP"
   | "ConfiguracaoLaboratorio"
   | "Auditoria"
-  | "ItemAuditoria";
+  | "ItemAuditoria"
+  | "CartaControle"
+  | "PCC"
+  | "MonitoramentoPCC"
+  | "Documento"
+  | "Colaborador"
+  | "Treinamento";
 
 /**
  * Registra ação na trilha de auditoria (compliance MAPA / ISO 17025).

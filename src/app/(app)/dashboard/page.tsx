@@ -18,10 +18,14 @@ function daysAgo(n: number) {
   return x;
 }
 
+function daysFromNow(n: number) {
+  return new Date(new Date().getTime() + n * 24 * 60 * 60 * 1000);
+}
+
 export default async function DashboardPage() {
   const user = await requireUser();
   const hoje = inicioDoDia();
-  const em24h = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  const em24h = daysFromNow(1);
   const trintaDiasAtras = daysAgo(30);
 
   const [
@@ -40,6 +44,10 @@ export default async function DashboardPage() {
     totalFornecedores,
     totalClientes,
     ultimosProdutos,
+    processosIncapazes,
+    documentosRevisaoVencida,
+    treinamentosVencidos,
+    pccsForaLimite,
   ] = await Promise.all([
     prisma.amostra.count({ where: { dataRecebimento: { gte: hoje } } }),
     prisma.amostra.count({ where: { status: "EM_ANALISE" } }),
@@ -83,6 +91,15 @@ export default async function DashboardPage() {
       orderBy: { createdAt: "desc" },
       take: 5,
       include: { _count: { select: { especificacoes: true, lotes: true } } },
+    }),
+    prisma.cartaControle.count({ where: { classificacao: "INCAPAZ" } }),
+    prisma.documento.count({ where: { status: "VIGENTE", revisaoEm: { lt: daysFromNow(0) } } }),
+    prisma.treinamento.count({ where: { status: "VENCIDO" } }),
+    prisma.monitoramentoPCC.count({
+      where: {
+        conforme: false,
+        data: { gte: daysAgo(7) },
+      },
     }),
   ]);
 
@@ -184,6 +201,26 @@ export default async function DashboardPage() {
             {equipamentosVencidos > 0 && (
               <li className="flex items-center gap-2 rounded-md bg-red-50 p-2 border border-red-200 text-red-800">
                 ⚠ <Link href="/equipamentos" className="font-medium hover:underline">{equipamentosVencidos} equipamento(s) com calibração vencida</Link>
+              </li>
+            )}
+            {processosIncapazes > 0 && (
+              <li className="flex items-center gap-2 rounded-md bg-red-50 p-2 border border-red-200 text-red-800">
+                ⚠ <Link href="/cep" className="font-medium hover:underline">{processosIncapazes} processo(s) incapaz(es) — Cpk &lt; 1,00</Link>
+              </li>
+            )}
+            {pccsForaLimite > 0 && (
+              <li className="flex items-center gap-2 rounded-md bg-red-50 p-2 border border-red-200 text-red-800">
+                ⚠ <Link href="/appcc" className="font-medium hover:underline">{pccsForaLimite} leitura(s) PCC fora do limite (7d)</Link>
+              </li>
+            )}
+            {documentosRevisaoVencida > 0 && (
+              <li className="flex items-center gap-2 rounded-md bg-amber-50 p-2 border border-amber-200 text-amber-800">
+                ⚠ <Link href="/documentos" className="font-medium hover:underline">{documentosRevisaoVencida} documento(s) com revisão vencida</Link>
+              </li>
+            )}
+            {treinamentosVencidos > 0 && (
+              <li className="flex items-center gap-2 rounded-md bg-amber-50 p-2 border border-amber-200 text-amber-800">
+                ⚠ <Link href="/treinamentos" className="font-medium hover:underline">{treinamentosVencidos} treinamento(s) vencido(s)</Link>
               </li>
             )}
           </ul>
