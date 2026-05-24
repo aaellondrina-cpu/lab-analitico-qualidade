@@ -71,7 +71,7 @@ export function Sidebar() {
   const isAdmin = session?.user?.role === "ADMIN";
 
   return (
-    <aside className="w-60 shrink-0 border-r border-slate-200 bg-white flex flex-col">
+    <aside className="w-60 shrink-0 border-r border-slate-200 bg-white flex flex-col print:hidden">
       <div className="px-5 py-5 border-b border-slate-200">
         <Logo />
       </div>

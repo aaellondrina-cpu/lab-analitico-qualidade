@@ -14,6 +14,8 @@ export async function getCurrentUser() {
 export async function requireUser() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  // Sessão de cliente do portal não tem acesso à área interna do laboratório.
+  if (user.type === "CLIENT") redirect("/portal/dashboard");
   return user;
 }
 
@@ -27,4 +29,20 @@ export async function requireRole(min: Role) {
 
 export function canWrite(role?: string | null) {
   return role === "ADMIN" || role === "RESPONSAVEL_TECNICO" || role === "ANALISTA";
+}
+
+// =========================================================
+// Portal do Cliente — sessão e guard separados
+// =========================================================
+export async function getCurrentCliente() {
+  const session = await getServerSession(authOptions);
+  const user = session?.user;
+  if (!user || user.type !== "CLIENT" || !user.clienteId) return null;
+  return user;
+}
+
+export async function requireCliente() {
+  const u = await getCurrentCliente();
+  if (!u) redirect("/portal/login");
+  return u;
 }

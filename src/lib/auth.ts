@@ -9,7 +9,8 @@ export const authOptions: NextAuthOptions = {
   debug: false,
   providers: [
     CredentialsProvider({
-      name: "credentials",
+      id: "credentials",
+      name: "Lab Internal",
       credentials: {
         email: { label: "E-mail", type: "email" },
         password: { label: "Senha", type: "password" },
@@ -25,7 +26,46 @@ export const authOptions: NextAuthOptions = {
         const ok = await bcrypt.compare(credentials.password, user.password);
         if (!ok) return null;
 
-        return { id: user.id, email: user.email, name: user.name, role: user.role };
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          type: "LAB",
+        };
+      },
+    }),
+    CredentialsProvider({
+      id: "cliente-credentials",
+      name: "Portal do Cliente",
+      credentials: {
+        email: { label: "E-mail", type: "email" },
+        password: { label: "Senha", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials.password) return null;
+
+        const cu = await prisma.clienteUser.findUnique({
+          where: { email: credentials.email.toLowerCase().trim() },
+        });
+        if (!cu || !cu.ativo) return null;
+
+        const ok = await bcrypt.compare(credentials.password, cu.password);
+        if (!ok) return null;
+
+        await prisma.clienteUser.update({
+          where: { id: cu.id },
+          data: { ultimoLogin: new Date() },
+        });
+
+        return {
+          id: cu.id,
+          email: cu.email,
+          name: cu.nome,
+          role: "CLIENTE",
+          type: "CLIENT",
+          clienteId: cu.clienteId,
+        };
       },
     }),
   ],
@@ -34,6 +74,8 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = (user as { role?: string }).role ?? "ANALISTA";
+        token.type = (user as { type?: "LAB" | "CLIENT" }).type ?? "LAB";
+        token.clienteId = (user as { clienteId?: string }).clienteId;
       }
       return token;
     },
@@ -41,6 +83,8 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as string;
+        session.user.type = (token.type as "LAB" | "CLIENT") ?? "LAB";
+        session.user.clienteId = token.clienteId as string | undefined;
       }
       return session;
     },

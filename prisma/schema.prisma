@@ -25,15 +25,37 @@ model User {
 }
 
 model Cliente {
-  id          String    @id @default(cuid())
+  id          String        @id @default(cuid())
   razaoSocial String
-  cnpj        String    @unique
+  cnpj        String        @unique
   responsavel String
   email       String
   telefone    String
   amostras    Amostra[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  portalUsers ClienteUser[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+// =========================================================
+// MÓDULO 13 — PORTAL DO CLIENTE
+// Login dedicado por cliente; vê apenas os próprios laudos.
+// Auth separada do User interno (provider "cliente-credentials").
+// =========================================================
+model ClienteUser {
+  id        String   @id @default(cuid())
+  cliente   Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  clienteId String
+  email     String   @unique
+  password  String
+  nome      String
+  ativo     Boolean  @default(true)
+  ultimoLogin DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clienteId])
+  @@index([ativo])
 }
 
 model Produto {
