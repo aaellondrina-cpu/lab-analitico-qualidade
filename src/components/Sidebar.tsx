@@ -55,7 +55,17 @@ const sections: NavSection[] = [
       { href: "/cip", label: "CIP" },
       { href: "/auditorias", label: "Auditorias" },
       { href: "/relatorios", label: "Relatórios" },
+      { href: "/relatorios/custos", label: "Custos de produção" },
       { href: "/auditoria", label: "Trilha de auditoria" },
+    ],
+  },
+  {
+    title: "Conformidade MAPA",
+    items: [
+      { href: "/registro-mapa", label: "Registro MAPA" },
+      { href: "/declaracao-anual", label: "Declaração anual" },
+      { href: "/bpf", label: "BPF" },
+      { href: "/relatorios/livro-producao", label: "Livro de produção" },
     ],
   },
   {

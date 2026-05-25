@@ -68,10 +68,20 @@ model Produto {
   tipoEmbalagem  String?         // PET | VIDRO_RETORNAVEL | VIDRO_NAO_RETORNAVEL | LATA
   versao         String?         // REGULAR | DIET | LIGHT | ZERO_ACUCAR | ZERO_SODIO
   validadeDias   Int?            // shelf life em dias
+  // Registro MAPA do produto (Decreto 6.871/2009, Art. 8º — PIQ).
+  mapaProdutoNumero    String?
+  mapaProdutoData      DateTime?
+  mapaProdutoValidade  DateTime?
+  // Checklist de rotulagem (Decreto 6.871/2009, Arts. 10-13).
+  // Salvo como JSON: { denominacao: bool, registro: bool, ... }.
+  rotulagemChecklist   String?
+  rotulagemStatus      String?   // APROVADA | PENDENTE_AJUSTE | EM_ANALISE_MAPA
+  rotulagemArteUrl     String?
   especificacoes Especificacao[]
   amostras       Amostra[]
   lotes          Lote[]
   cartas         CartaControle[]
+  declaracoes    DeclaracaoAnual[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 }
@@ -116,8 +126,15 @@ model Lote {
   responsavelProducao String?
   status              String   @default("EM_PRODUCAO") // EM_PRODUCAO | FINALIZADO | LIBERADO | RETIDO | DESCARTADO | AGUARDANDO_ANALISE | APROVADO | REPROVADO | REPROCESSO | EXPEDIDO
   observacoes         String?
+  // Custos calculados automaticamente a partir dos consumos.
+  custoInsumos        Float?
+  custoEmbalagens     Float?
+  custoTotal          Float?
+  custoPorUnidade     Float?
+  custoPorLitro       Float?
   amostras            Amostra[]
   consumos            ConsumoInsumo[]
+  registrosBPF        RegistroBPF[]
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -154,6 +171,7 @@ model Amostra {
   ncs             NaoConformidade[]
   laudo           Laudo?
   registrosCIP    RegistroCIP[]
+  contraProva     ContraProva?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
@@ -299,6 +317,12 @@ model LoteInsumo {
   certificadoUrl  String?         // PDF do CoA do fornecedor (upload futuro)
   status          String          @default("EM_ANALISE") // EM_ANALISE | APROVADO | REPROVADO | QUARENTENA
   observacoes     String?
+  // Custos do lote de insumo (R$).
+  precoUnitario   Float?
+  valorTotal      Float?          // precoUnitario × quantidade
+  numeroNF        String?
+  dataNF          DateTime?
+  condicaoPagamento String?       // AVISTA | 30 | 60 | 90
   amostras        Amostra[]
   consumos        ConsumoInsumo[]
   createdAt       DateTime        @default(now())
@@ -320,6 +344,10 @@ model ConsumoInsumo {
   loteInsumoId String
   quantidade   Float
   unidade      String
+  // Custo snapshot: precoUnitario do LoteInsumo no momento do consumo
+  // (preserva valor histórico mesmo se o lote de insumo for reprecificado).
+  custoUnitario Float?
+  custoTotal    Float?    // quantidade × custoUnitario
   createdAt    DateTime   @default(now())
 
   @@index([loteId])
@@ -339,6 +367,11 @@ model Embalagem {
   numeroTrips     Int?      // vidro retornável: nº de usos
   status          String    @default("EM_ANALISE") // EM_ANALISE | APROVADA | REPROVADA | DESCARTE
   observacoes     String?
+  // Custos.
+  precoUnitario      Float?
+  quantidadeRecebida Float?
+  valorTotal         Float?  // precoUnitario × quantidadeRecebida
+  numeroNF           String?
   amostras        Amostra[]
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
@@ -392,9 +425,13 @@ model ConfiguracaoLaboratorio {
   rtRegistro        String    // ex: CRQ-IV-12345
   rtAssinaturaUrl   String?
 
-  // Autorizações
-  mapaNumero         String?
-  mapaValidade       DateTime?
+  // Autorizações — Registro MAPA do estabelecimento.
+  mapaNumero          String?
+  mapaValidade        DateTime?
+  mapaDataConcessao   DateTime?
+  mapaNumeroProcesso  String?
+  mapaSFA             String?   // Superintendência Federal de Agricultura (estado)
+  mapaCertificadoUrl  String?
   anvisaNumero       String?
   anvisaValidade     DateTime?
   inmetroNumero      String?   // CRL
@@ -609,4 +646,91 @@ model Treinamento {
   @@index([documentoId])
   @@index([status])
   @@index([validade])
+}
+
+// =========================================================
+// MÓDULO 14 — CONFORMIDADE MAPA (Lei 8.918/94, Decreto 6.871/2009)
+// =========================================================
+
+// Registros do estabelecimento e dos produtos no MAPA.
+// tipo = ESTABELECIMENTO (1 ativo por vez) | PRODUTO (1 por produto).
+model RegistroMAPA {
+  id              String   @id @default(cuid())
+  tipo            String   // ESTABELECIMENTO | PRODUTO
+  numero          String
+  dataConcessao   DateTime
+  validade        DateTime?
+  numeroProcesso  String?
+  sfaEstado       String?  // SP | MG | PE | ...
+  produtoId       String?  // só preenchido quando tipo = PRODUTO
+  documentoUrl    String?
+  status          String   @default("ATIVO") // ATIVO | VENCIDO | CANCELADO
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([tipo])
+  @@index([produtoId])
+  @@index([status])
+}
+
+// Declaração Anual de Produção (Decreto 6.871/2009).
+// 1 linha por (ano, produto). Envio até 31/jan do ano seguinte.
+model DeclaracaoAnual {
+  id           String   @id @default(cuid())
+  ano          Int
+  produto      Produto  @relation(fields: [produtoId], references: [id])
+  produtoId    String
+  qtdProduzida Float
+  qtdVendida   Float
+  estoque      Float
+  unidade      String   // L | un
+  dataEnvio    DateTime?
+  status       String   @default("PENDENTE") // PENDENTE | ENVIADA | CONFIRMADA
+  observacoes  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([ano, produtoId])
+  @@index([ano])
+  @@index([status])
+}
+
+// Registros de Boas Práticas de Fabricação (Portaria SDA/MAPA 1343/2025).
+// Rastreia etapas de elaboração: xarope, carbonatação, envase, etc.
+model RegistroBPF {
+  id          String   @id @default(cuid())
+  lote        Lote?    @relation(fields: [loteId], references: [id])
+  loteId      String?
+  etapa       String   // XAROPE_SIMPLES | XAROPE_COMPOSTO | CARBONATACAO | ENVASE | HIGIENE | LIMPEZA | TEMPERATURA | PRAGAS
+  data        DateTime
+  responsavel String
+  // Parâmetros específicos da etapa, salvos como JSON.
+  // Ex.: { tempC: 4, pressaoBar: 3.5, volCO2: 3.8 }.
+  parametros  String?  // JSON
+  observacoes String?
+  createdAt   DateTime @default(now())
+
+  @@index([loteId])
+  @@index([etapa])
+  @@index([data])
+}
+
+// Contraprova / amostra de retenção (IN MAPA 55/2009).
+// 1:1 com Amostra — preserva subamostra física pra auditoria.
+model ContraProva {
+  id                 String   @id @default(cuid())
+  amostra            Amostra  @relation(fields: [amostraId], references: [id])
+  amostraId          String   @unique
+  codigo             String   @unique
+  quantidade         Float
+  embalagem          String
+  localArmazenamento String
+  dataColeta         DateTime
+  prazoDescarte      DateTime
+  status             String   @default("RETIDA") // RETIDA | DESCARTADA
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([status])
+  @@index([prazoDescarte])
 }

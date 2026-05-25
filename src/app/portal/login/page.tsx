@@ -3,11 +3,19 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { Logo } from "@/components/Logo";
 import { QualiMascote } from "@/components/QualiMascote";
 
 export default function PortalLoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <PortalLoginForm />
+    </Suspense>
+  );
+}
+
+function PortalLoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/portal/dashboard";

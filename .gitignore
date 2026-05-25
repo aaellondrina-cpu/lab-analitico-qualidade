@@ -53,3 +53,12 @@ next-env.d.ts
 # session cookies (smoke test)
 cookies.txt
 portal-cookies.txt
+
+# utilitários locais (scripts ad-hoc — não fazem parte do app)
+/_check-users.mjs
+/_reset-admin.mjs
+/_seed-portal-user.mjs
+/demo-seed.mjs
+
+# notas/textos avulsos
+/link*.txt
