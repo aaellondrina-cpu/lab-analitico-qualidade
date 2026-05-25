@@ -76,6 +76,65 @@ export function ClienteForm({ initial }: { initial?: ClienteInitial }) {
         required
       />
 
+      {/* Comercial */}
+      <fieldset className="rounded-md border border-slate-200 bg-slate-50 p-3 space-y-3">
+        <legend className="px-1 text-[10px] uppercase tracking-wider text-slate-500 font-medium">Comercial</legend>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-medium text-slate-700 mb-1">Tipo</label>
+            <select name="tipo" defaultValue="" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+              <option value="">—</option>
+              <option value="DISTRIBUIDOR">Distribuidor</option>
+              <option value="ATACADISTA">Atacadista</option>
+              <option value="VAREJISTA">Varejista</option>
+              <option value="CONSUMIDOR_FINAL">Consumidor final</option>
+              <option value="EXPORTACAO">Exportação</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-700 mb-1">Condição de pagamento</label>
+            <select name="condicaoPagamento" defaultValue="" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+              <option value="">—</option>
+              <option value="AVISTA">À vista</option>
+              <option value="30">30 dias</option>
+              <option value="60">60 dias</option>
+              <option value="90">90 dias</option>
+            </select>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Limite de crédito (R$)" name="limiteCredito" type="number" />
+          <Field label="Vendedor responsável" name="vendedorResponsavel" />
+        </div>
+      </fieldset>
+
+      {/* Contatos múltiplos */}
+      <fieldset className="rounded-md border border-slate-200 bg-slate-50 p-3 space-y-3">
+        <legend className="px-1 text-[10px] uppercase tracking-wider text-slate-500 font-medium">
+          Contato de qualidade / RT (importante para envio de laudos)
+        </legend>
+        <Field label="Nome RT" name="contatoRtNome" />
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="E-mail RT" name="contatoRtEmail" type="email" />
+          <Field label="Telefone RT" name="contatoRtTelefone" />
+        </div>
+        <Field label="E-mail dedicado para laudos" name="contatoLaudoEmail" type="email" placeholder="laudos@cliente.com.br" />
+      </fieldset>
+
+      {/* Documentos */}
+      <fieldset className="rounded-md border border-slate-200 bg-slate-50 p-3 space-y-3">
+        <legend className="px-1 text-[10px] uppercase tracking-wider text-slate-500 font-medium">Documentos (URLs)</legend>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Alvará URL" name="alvaraUrl" placeholder="https://..." />
+          <Field label="Alvará validade" name="alvaraValidade" type="date" />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Vig. Sanitária URL" name="vigilanciaUrl" placeholder="https://..." />
+          <Field label="Vig. Sanitária validade" name="vigilanciaValidade" type="date" />
+        </div>
+        <Field label="Contrato URL" name="contratoUrl" placeholder="https://..." />
+      </fieldset>
+
       {state.message && (
         <p className="rounded-md bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">
           {state.message}

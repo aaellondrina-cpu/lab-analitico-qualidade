@@ -6,6 +6,7 @@ import { requireUser } from "@/lib/dal";
 import { LoteInsumoForm } from "../_components/LoteInsumoForm";
 import { StatusLoteInsumoSelect } from "../_components/StatusLoteInsumoSelect";
 import { ExcluirLoteInsumoButton } from "../_components/ExcluirLoteInsumoButton";
+import { EspecInsumoForm } from "../_components/EspecInsumoForm";
 
 const TIPO_LABEL: Record<string, string> = {
   AGUA: "Água",
@@ -51,6 +52,7 @@ export default async function InsumoDetalhePage({
     include: {
       fornecedor: true,
       lotes: { orderBy: { createdAt: "desc" } },
+      especificacoes: { orderBy: { parametro: "asc" } },
     },
   });
 
@@ -152,6 +154,48 @@ export default async function InsumoDetalhePage({
             <LoteInsumoForm insumoId={insumo.id} unidadePadrao={insumo.unidadePadrao} />
           </div>
         </aside>
+      </section>
+
+      {/* Especificações de aprovação */}
+      <section className="mt-8">
+        <h2 className="mb-3 text-sm font-semibold text-slate-700">Especificações de aprovação</h2>
+        <div className="mb-3 rounded-lg border border-slate-200 bg-white p-4">
+          <EspecInsumoForm insumoId={insumo.id} />
+        </div>
+        {insumo.especificacoes.length === 0 ? (
+          <div className="rounded-lg border border-slate-200 bg-white p-6 text-center text-slate-400 text-xs">
+            Nenhuma especificação cadastrada. Adicione os parâmetros de aprovação acima.
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-3 py-2 text-left">Parâmetro</th>
+                  <th className="px-3 py-2 text-right">Mín.</th>
+                  <th className="px-3 py-2 text-right">Máx.</th>
+                  <th className="px-3 py-2 text-left">Un.</th>
+                  <th className="px-3 py-2 text-left">Método</th>
+                  <th className="px-3 py-2 text-left">Obrigat.</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {insumo.especificacoes.map((e) => (
+                  <tr key={e.id}>
+                    <td className="px-3 py-2 text-xs">{e.parametro}</td>
+                    <td className="px-3 py-2 text-right text-xs">{e.minimo ?? "—"}</td>
+                    <td className="px-3 py-2 text-right text-xs">{e.maximo ?? "—"}</td>
+                    <td className="px-3 py-2 text-xs">{e.unidade}</td>
+                    <td className="px-3 py-2 text-xs text-slate-500">{e.metodo ?? "—"}</td>
+                    <td className="px-3 py-2 text-xs">
+                      {e.obrigatorio ? <span className="text-petroleo">Sim</span> : <span className="text-slate-500">Não</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
     </>
   );

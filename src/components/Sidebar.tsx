@@ -14,49 +14,52 @@ const sections: NavSection[] = [
     items: [{ href: "/dashboard", label: "Dashboard" }],
   },
   {
-    title: "Operação",
+    title: "Produção & Qualidade",
     items: [
-      { href: "/amostras", label: "Amostras" },
       { href: "/lotes", label: "Lotes" },
+      { href: "/produtos", label: "Produtos" },
+      { href: "/estoque", label: "Estoque & Expedição" },
+      { href: "/temperatura", label: "Temperatura" },
+      { href: "/cip", label: "CIP" },
+    ],
+  },
+  {
+    title: "Análises",
+    items: [
+      { href: "/amostras", label: "Amostras / OS" },
       { href: "/laudos", label: "Laudos" },
+      { href: "/sensorial", label: "Sensorial" },
+      { href: "/agua-processo", label: "Água de Processo" },
+      { href: "/cep", label: "CEP / SPC" },
+    ],
+  },
+  {
+    title: "Gestão da Qualidade",
+    items: [
       { href: "/nao-conformidades", label: "Não Conformidades" },
+      { href: "/sac", label: "SAC / Reclamações" },
+      { href: "/recall", label: "Recall" },
+      { href: "/appcc", label: "APPCC / HACCP" },
     ],
   },
   {
     title: "Cadastros",
     items: [
-      { href: "/produtos", label: "Produtos" },
       { href: "/clientes", label: "Clientes" },
       { href: "/fornecedores", label: "Fornecedores" },
       { href: "/insumos", label: "Insumos" },
       { href: "/embalagens", label: "Embalagens" },
+      { href: "/embalagens/rotulos", label: "Rótulos" },
       { href: "/pontos-coleta", label: "Pontos de Coleta" },
       { href: "/equipamentos", label: "Equipamentos" },
     ],
   },
   {
-    title: "Qualidade",
+    title: "Pessoas & Documentos",
     items: [
-      { href: "/cep", label: "CEP / SPC" },
-      { href: "/appcc", label: "APPCC / HACCP" },
-    ],
-  },
-  {
-    title: "Pessoas & Docs",
-    items: [
-      { href: "/documentos", label: "Documentos" },
       { href: "/colaboradores", label: "Colaboradores" },
       { href: "/treinamentos", label: "Treinamentos" },
-    ],
-  },
-  {
-    title: "Compliance",
-    items: [
-      { href: "/cip", label: "CIP" },
-      { href: "/auditorias", label: "Auditorias" },
-      { href: "/relatorios", label: "Relatórios" },
-      { href: "/relatorios/custos", label: "Custos de produção" },
-      { href: "/auditoria", label: "Trilha de auditoria" },
+      { href: "/documentos", label: "Documentos" },
     ],
   },
   {
@@ -65,7 +68,17 @@ const sections: NavSection[] = [
       { href: "/registro-mapa", label: "Registro MAPA" },
       { href: "/declaracao-anual", label: "Declaração anual" },
       { href: "/bpf", label: "BPF" },
+      { href: "/auditorias", label: "Auditorias" },
+      { href: "/auditoria", label: "Trilha de auditoria" },
+    ],
+  },
+  {
+    title: "Relatórios",
+    items: [
+      { href: "/relatorios", label: "Painel" },
+      { href: "/relatorios/custos", label: "Custos de produção" },
       { href: "/relatorios/livro-producao", label: "Livro de produção" },
+      { href: "/relatorios/etiqueta", label: "Etiqueta (impressora)" },
     ],
   },
   {

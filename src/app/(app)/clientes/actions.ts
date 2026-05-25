@@ -6,6 +6,10 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/dal";
 import { auditLog } from "@/lib/audit";
 
+const strOpt = z.union([z.literal(""), z.string()]).transform((v) => (!v || !v.trim() ? undefined : v.trim()));
+const numOpt = z.union([z.literal(""), z.string()]).transform((v) => (v === "" ? undefined : Number(v)));
+const dateOpt = z.union([z.literal(""), z.string()]).transform((v) => (!v ? undefined : new Date(v)));
+
 const ClienteSchema = z.object({
   razaoSocial: z.string().min(2, "Razão social muito curta").trim(),
   cnpj: z
@@ -17,6 +21,22 @@ const ClienteSchema = z.object({
   responsavel: z.string().min(2, "Responsável obrigatório").trim(),
   email: z.email("E-mail inválido").trim(),
   telefone: z.string().min(8, "Telefone inválido").trim(),
+  // Comercial.
+  tipo: strOpt,
+  limiteCredito: numOpt,
+  condicaoPagamento: strOpt,
+  vendedorResponsavel: strOpt,
+  // Contato RT (laudos).
+  contatoRtNome: strOpt,
+  contatoRtEmail: strOpt,
+  contatoRtTelefone: strOpt,
+  contatoLaudoEmail: strOpt,
+  // Documentos.
+  alvaraUrl: strOpt,
+  alvaraValidade: dateOpt,
+  vigilanciaUrl: strOpt,
+  vigilanciaValidade: dateOpt,
+  contratoUrl: strOpt,
 });
 
 export type ClienteFormState = {
@@ -37,6 +57,19 @@ export async function criarCliente(
     responsavel: formData.get("responsavel"),
     email: formData.get("email"),
     telefone: formData.get("telefone"),
+    tipo: formData.get("tipo"),
+    limiteCredito: formData.get("limiteCredito") ?? "",
+    condicaoPagamento: formData.get("condicaoPagamento"),
+    vendedorResponsavel: formData.get("vendedorResponsavel"),
+    contatoRtNome: formData.get("contatoRtNome"),
+    contatoRtEmail: formData.get("contatoRtEmail"),
+    contatoRtTelefone: formData.get("contatoRtTelefone"),
+    contatoLaudoEmail: formData.get("contatoLaudoEmail"),
+    alvaraUrl: formData.get("alvaraUrl"),
+    alvaraValidade: formData.get("alvaraValidade") ?? "",
+    vigilanciaUrl: formData.get("vigilanciaUrl"),
+    vigilanciaValidade: formData.get("vigilanciaValidade") ?? "",
+    contratoUrl: formData.get("contratoUrl"),
   });
 
   if (!parsed.success) {
@@ -75,6 +108,19 @@ export async function atualizarCliente(
     responsavel: formData.get("responsavel"),
     email: formData.get("email"),
     telefone: formData.get("telefone"),
+    tipo: formData.get("tipo"),
+    limiteCredito: formData.get("limiteCredito") ?? "",
+    condicaoPagamento: formData.get("condicaoPagamento"),
+    vendedorResponsavel: formData.get("vendedorResponsavel"),
+    contatoRtNome: formData.get("contatoRtNome"),
+    contatoRtEmail: formData.get("contatoRtEmail"),
+    contatoRtTelefone: formData.get("contatoRtTelefone"),
+    contatoLaudoEmail: formData.get("contatoLaudoEmail"),
+    alvaraUrl: formData.get("alvaraUrl"),
+    alvaraValidade: formData.get("alvaraValidade") ?? "",
+    vigilanciaUrl: formData.get("vigilanciaUrl"),
+    vigilanciaValidade: formData.get("vigilanciaValidade") ?? "",
+    contratoUrl: formData.get("contratoUrl"),
   });
 
   if (!parsed.success) {

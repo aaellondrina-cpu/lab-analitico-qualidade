@@ -195,6 +195,43 @@ export async function atualizarStatusLoteInsumo(
   return { ok: true };
 }
 
+// Especificação de aprovação do insumo (limites min/max por parâmetro).
+const EspecInsumoSchema = z.object({
+  insumoId: z.string().min(1),
+  parametro: z.string().min(2).trim(),
+  minimo: z.union([z.literal(""), z.string()]).transform((v) => (v === "" ? undefined : Number(v))),
+  maximo: z.union([z.literal(""), z.string()]).transform((v) => (v === "" ? undefined : Number(v))),
+  unidade: z.string().min(1).trim(),
+  metodo: z.union([z.literal(""), z.string()]).transform((v) => (!v ? undefined : v.trim())),
+  obrigatorio: z.union([z.literal("on"), z.literal("")]).transform((v) => v === "on"),
+});
+
+export type EspecInsumoState = { errors?: Record<string, string[]>; message?: string; ok?: boolean };
+
+export async function criarEspecInsumo(_prev: EspecInsumoState, formData: FormData): Promise<EspecInsumoState> {
+  await requireUser();
+  const parsed = EspecInsumoSchema.safeParse({
+    insumoId: formData.get("insumoId"),
+    parametro: formData.get("parametro"),
+    minimo: formData.get("minimo") ?? "",
+    maximo: formData.get("maximo") ?? "",
+    unidade: formData.get("unidade"),
+    metodo: formData.get("metodo") ?? "",
+    obrigatorio: formData.get("obrigatorio") ?? "",
+  });
+  if (!parsed.success) return { errors: z.flattenError(parsed.error).fieldErrors as Record<string, string[]> };
+  await prisma.especificacaoInsumo.create({ data: parsed.data });
+  revalidatePath(`/insumos/${parsed.data.insumoId}`);
+  return { ok: true };
+}
+
+export async function excluirEspecInsumo(id: string, insumoId: string) {
+  await requireUser();
+  await prisma.especificacaoInsumo.delete({ where: { id } });
+  revalidatePath(`/insumos/${insumoId}`);
+  return { ok: true };
+}
+
 export async function excluirLoteInsumo(id: string) {
   await requireUser();
   let removed;

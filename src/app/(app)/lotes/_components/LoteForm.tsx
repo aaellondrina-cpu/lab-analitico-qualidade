@@ -61,13 +61,14 @@ export function LoteForm({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-medium text-slate-700 mb-1">Número do lote</label>
+          <label className="block text-xs font-medium text-slate-700 mb-1">
+            Número do lote {!initial && <span className="text-slate-400">(deixe vazio p/ gerar automático)</span>}
+          </label>
           <input
             name="numero"
-            required
             defaultValue={initial?.numero}
             className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-mono uppercase"
-            placeholder="LT-2026-05-23-001"
+            placeholder={initial ? "" : "Auto: 2026-0042-REFGUA-2L-L1"}
           />
           {state.errors?.numero && <p className="mt-1 text-xs text-red-600">{state.errors.numero[0]}</p>}
         </div>

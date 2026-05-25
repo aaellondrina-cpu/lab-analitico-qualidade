@@ -31,8 +31,31 @@ model Cliente {
   responsavel String
   email       String
   telefone    String
+  // Dados comerciais (Zip 5).
+  tipo               String?  // DISTRIBUIDOR | ATACADISTA | VAREJISTA | CONSUMIDOR_FINAL | EXPORTACAO
+  limiteCredito      Float?
+  condicaoPagamento  String?  // AVISTA | 30 | 60 | 90
+  vendedorResponsavel String?
+  // Contatos múltiplos (RT é o mais importante p/ envio de laudos).
+  contatoRtNome     String?
+  contatoRtEmail    String?
+  contatoRtTelefone String?
+  contatoFinNome    String?
+  contatoFinEmail   String?
+  contatoFinTelefone String?
+  contatoLaudoEmail String?  // e-mail dedicado p/ receber laudos
+  // Documentos do cliente.
+  alvaraUrl         String?
+  alvaraValidade    DateTime?
+  vigilanciaUrl     String?
+  vigilanciaValidade DateTime?
+  contratoUrl       String?
+  ativo              Boolean       @default(true)
   amostras    Amostra[]
   portalUsers ClienteUser[]
+  movimentacoes MovimentacaoEstoque[]
+  sacs        SAC[]
+  recallRetornos RecallRetorno[]
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 }
@@ -82,6 +105,8 @@ model Produto {
   lotes          Lote[]
   cartas         CartaControle[]
   declaracoes    DeclaracaoAnual[]
+  formulacoes    Formulacao[]
+  rotulos        Rotulo[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 }
@@ -113,12 +138,17 @@ model PontoColeta {
 
 model Lote {
   id                  String   @id @default(cuid())
-  numero              String   @unique
+  numero              String   @unique // formato auto: ANO-SEQ-CODPROD-VOL-LINHA
   produto             Produto  @relation(fields: [produtoId], references: [id])
   produtoId           String
   sabor               String?
   dataInicioProducao  DateTime
   dataFimProducao     DateTime?
+  dataValidade        DateTime? // calculada: dataInicioProducao + Produto.validadeDias
+  // Snapshot p/ rastreabilidade MAPA — preserva valor da data do lote.
+  codigoProduto       String?
+  registroMAPAProduto String?
+  registroMAPAEstab   String?
   volumeTotal         String?  // ex: "5000L", "12000un"
   unidadesProduzidas  Int?     // contagem de unidades
   linha               String?  // Linha 1, Linha 2...
@@ -135,6 +165,8 @@ model Lote {
   amostras            Amostra[]
   consumos            ConsumoInsumo[]
   registrosBPF        RegistroBPF[]
+  movimentacoes       MovimentacaoEstoque[]
+  avaliacoesSensoriais AvaliacaoSensorial[]
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -292,17 +324,36 @@ model Insumo {
   nome         String
   codigo       String       @unique
   // AGUA | ACUCAR | HFCS | CO2 | CONCENTRADO | ESSENCIA |
-  // EDULCORANTE | ACIDULANTE | CONSERVANTE | CORANTE | OUTRO
+  // EDULCORANTE | ACIDULANTE | CONSERVANTE | CORANTE |
+  // DIOXIDO_ENXOFRE | EMULSIFICANTE | ANTIOXIDANTE | AROMATIZANTE | OUTRO
   tipo         String
   fornecedor   Fornecedor   @relation(fields: [fornecedorId], references: [id])
   fornecedorId String
-  unidadePadrao String      @default("kg") // kg | L | m3 | un
+  unidadePadrao String      @default("kg") // kg | L | m3 | un | saca | bombona | cilindro
   lotes        LoteInsumo[]
+  especificacoes EspecificacaoInsumo[]
+  ingredFormul   FormulacaoIngrediente[]
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
   @@index([fornecedorId])
   @@index([tipo])
+}
+
+// Especificações de aprovação do insumo (similar a Especificacao do Produto).
+// Define limites min/max que cada lote do insumo precisa atender.
+model EspecificacaoInsumo {
+  id          String  @id @default(cuid())
+  insumo      Insumo  @relation(fields: [insumoId], references: [id], onDelete: Cascade)
+  insumoId    String
+  parametro   String  // Pureza | Umidade | pH | Pol | Cor (ICUMSA) | etc.
+  minimo      Float?
+  maximo      Float?
+  unidade     String  // % | g/100g | pH | ICUMSA | etc.
+  metodo      String?
+  obrigatorio Boolean @default(true)
+
+  @@index([insumoId])
 }
 
 model LoteInsumo {
@@ -313,7 +364,12 @@ model LoteInsumo {
   dataFabricacao  DateTime
   dataValidade    DateTime
   quantidade      Float
-  unidade         String          // kg | L | m3 | un
+  unidade         String          // kg | L | m3 | un | saca | bombona | cilindro
+  // Recebimento detalhado (Zip 5)
+  pesoLiquido     Float?          // kg — para sólidos
+  volumeLiquido   Float?          // L — para líquidos
+  nrEmbalagens    Int?            // nº de sacas/bombonas/cilindros
+  pesoPorEmbalagem Float?         // kg ou L por embalagem
   certificadoUrl  String?         // PDF do CoA do fornecedor (upload futuro)
   status          String          @default("EM_ANALISE") // EM_ANALISE | APROVADO | REPROVADO | QUARENTENA
   observacoes     String?
@@ -615,10 +671,20 @@ model Documento {
 model Colaborador {
   id           String        @id @default(cuid())
   nome         String
+  cpf          String?       @unique
   cargo        String
   setor        String
-  email        String?
+  email        String?       @unique
+  telefone     String?
+  dataAdmissao DateTime?
+  // Acesso ao sistema (perfil) — espelha o User.role.
+  role         String        @default("ANALISTA") // ADMIN | RT | ANALISTA | OPERADOR | LEITURA
   ativo        Boolean       @default(true)
+  // Saúde ocupacional (BPF MAPA).
+  proximoExame DateTime?
+  aptidao      String        @default("APTO")     // APTO | APTO_COM_RESTRICOES | INAPTO
+  // Equipamentos que está habilitado a operar (CSV — keep simples).
+  equipamentos String?
   treinamentos Treinamento[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
@@ -733,4 +799,252 @@ model ContraProva {
 
   @@index([status])
   @@index([prazoDescarte])
+}
+
+// =========================================================
+// MÓDULO 15 — ZIP 5: Rótulos, Formulação, Sensorial, Água,
+// Temperatura, Estoque, Recall, SAC
+// =========================================================
+
+// Lote de rótulos recebidos — checklist RDC 259/2002 + Decreto 6.871/2009.
+model Rotulo {
+  id              String   @id @default(cuid())
+  fornecedor      String
+  loteFornecedor  String
+  produto         Produto  @relation(fields: [produtoId], references: [id])
+  produtoId       String
+  quantidade      Int
+  dataRecebimento DateTime @default(now())
+  numeroNF        String?
+  // checklist salvo como JSON: { denominacao: "CONFORME"|"NAO_CONFORME"|"NA", ... }
+  checklist       String?  // JSON
+  status          String   @default("EM_ANALISE") // EM_ANALISE | APROVADO | REPROVADO | APROVADO_COM_RESSALVA
+  arteUrl         String?
+  observacoes     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([produtoId])
+  @@index([status])
+}
+
+// Formulação/receita oficial do produto (vinculada ao registro MAPA).
+model Formulacao {
+  id            String                  @id @default(cuid())
+  produto       Produto                 @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  produtoId     String
+  versao        Int                     @default(1)
+  vigente       Boolean                 @default(true)
+  aprovadaPor   String
+  dataAprovacao DateTime
+  observacoes   String?
+  ingredientes  FormulacaoIngrediente[]
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+
+  @@unique([produtoId, versao])
+  @@index([produtoId])
+}
+
+model FormulacaoIngrediente {
+  id           String     @id @default(cuid())
+  formulacao   Formulacao @relation(fields: [formulacaoId], references: [id], onDelete: Cascade)
+  formulacaoId String
+  insumo       Insumo?    @relation(fields: [insumoId], references: [id])
+  insumoId     String?
+  // Nome livre caso o insumo não esteja cadastrado.
+  nomeLivre    String?
+  quantidade   Float      // por 1000L de produto
+  unidade      String     // kg | L | g | mL
+  percentual   Float?
+  minimoPerc   Float?
+  maximoPerc   Float?
+  funcao       String     // acidulante | conservante | corante | edulcorante | aromatizante | outro
+  ins          String?    // ex: INS 211
+  legislacao   String?
+  obrigatorio  Boolean    @default(true)
+
+  @@index([formulacaoId])
+}
+
+// Painel sensorial por lote (escala hedônica 1-9).
+model AvaliacaoSensorial {
+  id          String                    @id @default(cuid())
+  lote        Lote                      @relation(fields: [loteId], references: [id])
+  loteId      String
+  data        DateTime
+  resultado   String                    @default("PENDENTE") // APROVADO | REPROVADO | APROVADO_COM_RESSALVA | PENDENTE
+  produtoReferencia String?
+  observacoes String?
+  itens       AvaliacaoSensorialItem[]
+  createdAt   DateTime                  @default(now())
+  updatedAt   DateTime                  @updatedAt
+
+  @@index([loteId])
+  @@index([resultado])
+}
+
+model AvaliacaoSensorialItem {
+  id              String             @id @default(cuid())
+  avaliacao       AvaliacaoSensorial @relation(fields: [avaliacaoId], references: [id], onDelete: Cascade)
+  avaliacaoId     String
+  avaliador       String
+  aparencia       Int
+  cor             Int
+  odor            Int
+  sabor           Int
+  carbonatacao    Int?
+  corpo           Int?
+  impressaoGlobal Int
+  parecer         String              // APROVADO | REPROVADO | APROVADO_COM_RESSALVA
+  desvios         String?
+  comparacaoPadrao String?            // IGUAL | SUPERIOR | INFERIOR
+
+  @@index([avaliacaoId])
+}
+
+// Controle de água de processo (Portaria GM/MS 888/2021).
+model ControleAgua {
+  id          String   @id @default(cuid())
+  ponto       String
+  tipo        String   // DIARIO | MENSAL | SEMESTRAL
+  data        DateTime
+  // Parâmetros como JSON livre (ex: { cloro: 1.2, pH: 7, turbidez: 0.5 }).
+  parametros  String?  // JSON
+  responsavel String
+  status      String   @default("CONFORME") // CONFORME | ATENCAO | NAO_CONFORME
+  laudoUrl    String?  // p/ análises externas semestrais
+  numeroLaudo String?
+  observacoes String?
+  createdAt   DateTime @default(now())
+
+  @@index([tipo])
+  @@index([data])
+  @@index([status])
+}
+
+// Monitoramento de temperatura (Portaria MAPA 1343/2025).
+model PontoTemperatura {
+  id           String   @id @default(cuid())
+  nome         String
+  tipo         String   // CAMARA_FRIA | ARMAZEM | AREA_PRODUCAO | CAMARA_RETENCAO
+  tempMin      Float
+  tempMax      Float
+  frequenciaH  Int?     // horas entre registros
+  responsavel  String?
+  ativo        Boolean  @default(true)
+  registros    RegistroTemperatura[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([tipo])
+}
+
+model RegistroTemperatura {
+  id          String   @id @default(cuid())
+  ponto       PontoTemperatura @relation(fields: [pontoId], references: [id], onDelete: Cascade)
+  pontoId     String
+  temperatura Float
+  conforme    Boolean
+  responsavel String
+  observacoes String?
+  data        DateTime @default(now())
+
+  @@index([pontoId])
+  @@index([data])
+  @@index([conforme])
+}
+
+// Estoque e expedição.
+model MovimentacaoEstoque {
+  id              String   @id @default(cuid())
+  tipo            String   // ENTRADA | SAIDA
+  lote            Lote     @relation(fields: [loteId], references: [id])
+  loteId          String
+  quantidade      Float
+  unidade         String   // caixas | unidades | L
+  cliente         Cliente? @relation(fields: [clienteId], references: [id])
+  clienteId       String?
+  notaFiscal      String?
+  notaFiscalUrl   String?
+  transportadora  String?
+  placaVeiculo    String?
+  temperaturaC    Float?
+  localizacao     String?  // posição no armazém (entrada)
+  responsavel     String
+  data            DateTime @default(now())
+
+  @@index([loteId])
+  @@index([clienteId])
+  @@index([tipo])
+}
+
+// Recall / recolhimento (Decreto 6.871/2009 Art. 80).
+model Recall {
+  id              String          @id @default(cuid())
+  numero          String          @unique // RC-2026-NNN
+  // Lista de IDs de Lote afetados — armazenado como CSV pra simplificar.
+  lotesIds        String
+  motivo          String          // CONTAMINACAO | NC_FISICOQUIMICA | CORPO_ESTRANHO | ROTULAGEM | OUTRO
+  descricao       String
+  nivel           String          // CLASSE_I | CLASSE_II | CLASSE_III
+  status          String          @default("ABERTO") // ABERTO | EM_ANDAMENTO | ENCERRADO
+  responsavel     String
+  dataIdentificacao DateTime
+  dataMAPA        DateTime?
+  protocoloMAPA   String?
+  qtdRecolhida    Float?
+  destinacao      String?         // DESCARTE | REPROCESSO
+  dataEncerramento DateTime?
+  retornos        RecallRetorno[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([status])
+  @@index([nivel])
+}
+
+model RecallRetorno {
+  id            String   @id @default(cuid())
+  recall        Recall   @relation(fields: [recallId], references: [id], onDelete: Cascade)
+  recallId      String
+  cliente       Cliente  @relation(fields: [clienteId], references: [id])
+  clienteId     String
+  qtdNotificada Float
+  qtdRetornada  Float?
+  status        String   @default("NOTIFICADO") // NOTIFICADO | RETORNOU | DESCARTOU | NAO_LOCALIZADO
+  observacoes   String?
+  data          DateTime @default(now())
+
+  @@index([recallId])
+  @@index([clienteId])
+  @@index([status])
+}
+
+// SAC — Reclamação do cliente.
+model SAC {
+  id          String   @id @default(cuid())
+  numero      String   @unique // SAC-2026-NNN
+  cliente     Cliente  @relation(fields: [clienteId], references: [id])
+  clienteId   String
+  produto     String?  // nome do produto reclamado (livre)
+  lote        String?  // lote informado pelo cliente
+  canal       String   // EMAIL | TELEFONE | WHATSAPP | PRESENCIAL | PORTAL
+  tipo        String   // QUALIDADE | CORPO_ESTRANHO | EMBALAGEM | VALIDADE | ROTULAGEM | ATRASO | DOCUMENTACAO | OUTRO
+  descricao   String
+  urgencia    String   @default("MEDIA") // BAIXA | MEDIA | ALTA | CRITICA
+  status      String   @default("ABERTA") // ABERTA | EM_INVESTIGACAO | AGUARDANDO_RETORNO | ENCERRADA
+  prazo       DateTime
+  causaRaiz   String?
+  acao        String?
+  resposta    String?
+  dataResposta DateTime?
+  satisfacaoCliente String? // SATISFEITO | INSATISFEITO | SEM_RETORNO
+  evidenciaUrl String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([clienteId])
+  @@index([status])
+  @@index([urgencia])
 }

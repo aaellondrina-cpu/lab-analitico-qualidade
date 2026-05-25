@@ -9,7 +9,8 @@ import { auditLog } from "@/lib/audit";
 const STATUS_VALIDOS = ["EM_PRODUCAO", "FINALIZADO", "LIBERADO", "RETIDO", "DESCARTADO"] as const;
 
 const LoteSchema = z.object({
-  numero: z.string().min(2, "Número do lote obrigatório").trim().transform((s) => s.toUpperCase()),
+  // Vazio = sistema gera automático no formato ANO-SEQ-CODPROD-VOL-LINHA.
+  numero: z.string().trim().optional().transform((s) => (s && s.length > 0 ? s.toUpperCase() : null)),
   produtoId: z.string().min(1, "Produto obrigatório"),
   sabor: z.string().optional().transform((v) => (v && v.trim() !== "" ? v.trim() : null)),
   dataInicioProducao: z.string().min(1, "Data início obrigatória").transform((s) => new Date(s)),
@@ -28,6 +29,27 @@ const LoteSchema = z.object({
   responsavelProducao: z.string().optional().transform((v) => (v && v.trim() !== "" ? v.trim() : null)),
   observacoes: z.string().optional().transform((v) => (v && v.trim() !== "" ? v.trim() : null)),
 });
+
+// Gera numero ANO-SEQ-CODPROD-VOL-LINHA (RDC 259/2002 — fabricante define formato único).
+async function gerarNumeroLote(
+  produtoCodigo: string,
+  volumeMl: number | null,
+  linha: string | null,
+): Promise<string> {
+  const ano = new Date().getFullYear();
+  const prefix = `${ano}-`;
+  const ult = await prisma.lote.findFirst({
+    where: { numero: { startsWith: prefix } },
+    orderBy: { numero: "desc" },
+  });
+  // pega os 4 dígitos depois do prefixo
+  const lastSeq = ult ? parseInt(ult.numero.slice(prefix.length, prefix.length + 4), 10) : 0;
+  const seq = (Number.isNaN(lastSeq) ? 0 : lastSeq) + 1;
+  const codCurto = produtoCodigo.replace(/[^A-Z0-9]/gi, "").toUpperCase().slice(0, 8);
+  const volStr = volumeMl ? (volumeMl >= 1000 ? `${volumeMl / 1000}L` : `${volumeMl}ML`) : "VOL";
+  const linhaStr = linha ? linha.replace(/[^A-Z0-9]/gi, "").toUpperCase().slice(0, 3) : "L1";
+  return `${ano}-${String(seq).padStart(4, "0")}-${codCurto}-${volStr}-${linhaStr}`;
+}
 
 export type LoteFormState = {
   errors?: Record<string, string[]>;
@@ -59,18 +81,41 @@ export async function criarLote(
     return { errors: z.flattenError(parsed.error).fieldErrors as Record<string, string[]> };
   }
 
-  // Se não tem sabor explícito mas o produto tem, denormaliza
-  if (!parsed.data.sabor) {
-    const produto = await prisma.produto.findUnique({ where: { id: parsed.data.produtoId } });
-    if (produto?.sabor) parsed.data.sabor = produto.sabor;
-  }
+  // Busca produto p/ denormalizar sabor, código, MAPA do produto e calcular validade.
+  const produto = await prisma.produto.findUnique({
+    where: { id: parsed.data.produtoId },
+  });
+  if (!produto) return { message: "Produto não encontrado." };
+
+  if (!parsed.data.sabor && produto.sabor) parsed.data.sabor = produto.sabor;
+
+  // Busca configuração p/ snapshot do registro MAPA do estabelecimento.
+  const cfg = await prisma.configuracaoLaboratorio.findFirst();
+
+  // Calcula data de validade: dataInicioProducao + produto.validadeDias.
+  const dataValidade = produto.validadeDias
+    ? new Date(parsed.data.dataInicioProducao.getTime() + produto.validadeDias * 86400000)
+    : null;
+
+  // Gera número se não informado.
+  const numero = parsed.data.numero ?? (await gerarNumeroLote(
+    produto.codigo, produto.volume ?? null, parsed.data.linha,
+  ));
 
   const status = parsed.data.dataFimProducao ? "FINALIZADO" : "EM_PRODUCAO";
 
   let created;
   try {
     created = await prisma.lote.create({
-      data: { ...parsed.data, status },
+      data: {
+        ...parsed.data,
+        numero,
+        status,
+        dataValidade,
+        codigoProduto: produto.codigo,
+        registroMAPAProduto: produto.mapaProdutoNumero,
+        registroMAPAEstab: cfg?.mapaNumero,
+      },
     });
   } catch (e) {
     const msg = (e as { code?: string }).code === "P2002"
@@ -113,8 +158,12 @@ export async function atualizarLote(
     return { errors: z.flattenError(parsed.error).fieldErrors as Record<string, string[]> };
   }
 
+  // No update, se numero veio vazio, preserva o atual (não permite null em campo @unique não-nullable).
+  const { numero, ...rest } = parsed.data;
+  const dataUpdate = numero === null ? rest : { ...rest, numero };
+
   try {
-    await prisma.lote.update({ where: { id }, data: parsed.data });
+    await prisma.lote.update({ where: { id }, data: dataUpdate });
   } catch (e) {
     const msg = (e as { code?: string }).code === "P2002"
       ? "Já existe outro lote com este número."
@@ -122,7 +171,7 @@ export async function atualizarLote(
     return { message: msg };
   }
 
-  await auditLog({ action: "UPDATE", entity: "Lote", entityId: id, diff: parsed.data });
+  await auditLog({ action: "UPDATE", entity: "Lote", entityId: id, diff: dataUpdate });
   revalidatePath("/lotes");
   return { ok: true };
 }

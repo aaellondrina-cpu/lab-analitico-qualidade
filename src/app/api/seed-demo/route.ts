@@ -256,6 +256,248 @@ export async function GET(req: Request) {
     }
   }
 
+  // === ZIP 5 — Dados de demonstração dos novos models ===
+
+  // Formulação vigente do produto.
+  const formExist = await prisma.formulacao.findFirst({ where: { produtoId: produto.id, vigente: true } });
+  if (!formExist) {
+    const f = await prisma.formulacao.create({
+      data: {
+        produtoId: produto.id, versao: 1, vigente: true,
+        aprovadaPor: admin.name, dataAprovacao: diasAtras(60),
+        observacoes: "Receita base do refrigerante cola PET 2L.",
+      },
+    });
+    await prisma.formulacaoIngrediente.createMany({
+      data: [
+        { formulacaoId: f.id, nomeLivre: "Água tratada", quantidade: 880, unidade: "L", percentual: 88.0, funcao: "materia_prima", obrigatorio: true },
+        { formulacaoId: f.id, nomeLivre: "Açúcar cristal", quantidade: 110, unidade: "kg", percentual: 11.0, funcao: "edulcorante", obrigatorio: true },
+        { formulacaoId: f.id, nomeLivre: "Concentrado Cola", quantidade: 5, unidade: "L", percentual: 0.5, funcao: "aromatizante", ins: "—", obrigatorio: true },
+        { formulacaoId: f.id, nomeLivre: "Ácido fosfórico", quantidade: 0.4, unidade: "kg", percentual: 0.04, funcao: "acidulante", ins: "INS 338", legislacao: "RDC ANVISA 8/2013", obrigatorio: true },
+        { formulacaoId: f.id, nomeLivre: "Benzoato de sódio", quantidade: 0.15, unidade: "kg", percentual: 0.015, funcao: "conservante", ins: "INS 211", legislacao: "RDC ANVISA 8/2013", obrigatorio: true },
+      ],
+    });
+    log.push("Formulação v1 criada com 5 ingredientes");
+  }
+
+  // Avaliações sensoriais — 1 por lote (3 primeiros).
+  const todosLotes = await prisma.lote.findMany({ take: 5, orderBy: { createdAt: "desc" } });
+  for (let i = 0; i < Math.min(3, todosLotes.length); i++) {
+    const lt = todosLotes[i];
+    const exist = await prisma.avaliacaoSensorial.findFirst({ where: { loteId: lt.id } });
+    if (!exist) {
+      const reprovado = i === 2;
+      await prisma.avaliacaoSensorial.create({
+        data: {
+          loteId: lt.id, data: diasAtras(4),
+          resultado: reprovado ? "REPROVADO" : "APROVADO",
+          produtoReferencia: "Padrão Cola Original",
+          itens: {
+            create: [
+              {
+                avaliador: "Painelista A",
+                aparencia: 8, cor: 8, odor: 7, sabor: reprovado ? 4 : 8,
+                carbonatacao: reprovado ? 3 : 7, corpo: 7, impressaoGlobal: reprovado ? 4 : 8,
+                parecer: reprovado ? "REPROVADO" : "APROVADO",
+                comparacaoPadrao: reprovado ? "INFERIOR" : "IGUAL",
+                desvios: reprovado ? "Carbonatação alta, off-flavor metálico" : undefined,
+              },
+              {
+                avaliador: "Painelista B",
+                aparencia: 7, cor: 8, odor: 7, sabor: reprovado ? 5 : 8,
+                carbonatacao: reprovado ? 3 : 8, corpo: 8, impressaoGlobal: reprovado ? 5 : 8,
+                parecer: reprovado ? "REPROVADO" : "APROVADO",
+                comparacaoPadrao: reprovado ? "INFERIOR" : "IGUAL",
+              },
+            ],
+          },
+        },
+      });
+    }
+  }
+
+  // Controle de Água — 5 registros (3 diários, 2 mensais).
+  const aguaCount = await prisma.controleAgua.count();
+  if (aguaCount === 0) {
+    for (let i = 0; i < 3; i++) {
+      await prisma.controleAgua.create({
+        data: {
+          ponto: "Reservatório R1 — entrada da indústria",
+          tipo: "DIARIO", data: diasAtras(i),
+          parametros: JSON.stringify({ cloroResidualMgL: 1.1 + i * 0.05, pH: 7.0 + i * 0.05, turbidezUT: 0.4, tempC: 22 }),
+          responsavel: "Operador Turno A", status: "CONFORME",
+        },
+      });
+    }
+    await prisma.controleAgua.create({
+      data: {
+        ponto: "Reservatório R1 — entrada da indústria",
+        tipo: "MENSAL", data: diasAtras(15),
+        parametros: JSON.stringify({ coliformesTotais: "ausencia/100mL", eColi: "ausencia/100mL", corUH: 4, condutividade: 220, ferroMgL: 0.04 }),
+        responsavel: "Analista LimsQual", status: "CONFORME",
+      },
+    });
+    await prisma.controleAgua.create({
+      data: {
+        ponto: "Reservatório R1 — entrada da indústria",
+        tipo: "SEMESTRAL", data: diasAtras(90),
+        parametros: JSON.stringify({ laudo: "Laboratorio Externo XYZ", parametros: 40, conformidade: "TOTAL" }),
+        responsavel: "Analista LimsQual", status: "CONFORME",
+        numeroLaudo: "LAB-XYZ-2026-0123",
+      },
+    });
+    log.push("5 registros de controle de água criados");
+  }
+
+  // Pontos de Temperatura + leituras.
+  const pontoExist = await prisma.pontoTemperatura.findFirst();
+  if (!pontoExist) {
+    const p1 = await prisma.pontoTemperatura.create({
+      data: { nome: "Câmara Fria 1", tipo: "CAMARA_FRIA", tempMin: 2, tempMax: 8, frequenciaH: 4, responsavel: "Operador Câmara" },
+    });
+    const p2 = await prisma.pontoTemperatura.create({
+      data: { nome: "Câmara de Retenção", tipo: "CAMARA_RETENCAO", tempMin: 18, tempMax: 25, frequenciaH: 12, responsavel: "RT" },
+    });
+    for (const pt of [p1, p2]) {
+      for (let h = 0; h < 6; h++) {
+        const temp = pt.tipo === "CAMARA_FRIA" ? 4 + Math.random() * 2 : 22 + Math.random() * 1.5;
+        const desvio = h === 2 && pt.tipo === "CAMARA_FRIA";
+        await prisma.registroTemperatura.create({
+          data: {
+            pontoId: pt.id,
+            temperatura: desvio ? 11.2 : temp,
+            conforme: desvio ? false : true,
+            responsavel: pt.responsavel ?? "Operador",
+            observacoes: desvio ? "Porta aberta durante limpeza" : undefined,
+            data: new Date(Date.now() - h * 4 * 3600 * 1000),
+          },
+        });
+      }
+    }
+    log.push("2 pontos de temperatura + 12 leituras criados");
+  }
+
+  // Movimentações de estoque — 1 entrada + 1 saída por cliente.
+  const movCount = await prisma.movimentacaoEstoque.count();
+  if (movCount === 0 && todosLotes.length > 0) {
+    const clientesDB = await prisma.cliente.findMany({ take: 5 });
+    for (let i = 0; i < todosLotes.length; i++) {
+      const lt = todosLotes[i];
+      await prisma.movimentacaoEstoque.create({
+        data: {
+          tipo: "ENTRADA", loteId: lt.id, quantidade: 350, unidade: "caixas",
+          localizacao: `Prateleira ${String.fromCharCode(65 + i)}-${10 + i}`,
+          responsavel: "Operador Almoxarifado", data: diasAtras(5 - i),
+        },
+      });
+      const cli = clientesDB[i % clientesDB.length];
+      if (cli) {
+        await prisma.movimentacaoEstoque.create({
+          data: {
+            tipo: "SAIDA", loteId: lt.id, quantidade: 80 + i * 20, unidade: "caixas",
+            clienteId: cli.id, notaFiscal: `NF-${10000 + i * 7}`,
+            transportadora: "TransLog SA", placaVeiculo: `ABC-${1000 + i}`,
+            temperaturaC: 6.5, responsavel: "Op. Expedição", data: diasAtras(3 - i),
+          },
+        });
+      }
+    }
+    log.push("Movimentações de estoque criadas (entradas + saídas)");
+  }
+
+  // SAC — 2 reclamações.
+  const sacCount = await prisma.sAC.count();
+  if (sacCount === 0) {
+    const clienteSAC = await prisma.cliente.findFirst();
+    if (clienteSAC) {
+      await prisma.sAC.create({
+        data: {
+          numero: "SAC-2026-001", clienteId: clienteSAC.id,
+          canal: "TELEFONE", tipo: "QUALIDADE", urgencia: "ALTA",
+          descricao: "Cliente relata sabor metálico em garrafa do lote L-DEMO-1002.",
+          lote: "L-DEMO-1002",
+          status: "EM_INVESTIGACAO", prazo: diasFrente(2),
+        },
+      });
+      await prisma.sAC.create({
+        data: {
+          numero: "SAC-2026-002", clienteId: clienteSAC.id,
+          canal: "EMAIL", tipo: "EMBALAGEM", urgencia: "MEDIA",
+          descricao: "Tampa danificada em 3 garrafas do pallet recebido.",
+          status: "ABERTA", prazo: diasFrente(5),
+        },
+      });
+      log.push("2 SACs de exemplo criados");
+    }
+  }
+
+  // Rótulos — 2 lotes (1 aprovado + 1 em análise).
+  const rotCount = await prisma.rotulo.count();
+  if (rotCount === 0) {
+    const checklistAprovado = JSON.stringify({
+      denominacao: "CONFORME", registroMAPA: "CONFORME", marca: "CONFORME",
+      ingredientes: "CONFORME", aditivos: "CONFORME", alergenos: "CONFORME",
+      fabricante: "CONFORME", endereco: "CONFORME", registroEstab: "CONFORME",
+      volume: "CONFORME", lote: "CONFORME", validade: "CONFORME",
+      tabelaNutri: "CONFORME", codigoBarras: "CONFORME", legibilidade: "CONFORME",
+    });
+    await prisma.rotulo.create({
+      data: {
+        fornecedor: "Gráfica Rótulos Brasil", loteFornecedor: "GRB-2026-0042",
+        produtoId: produto.id, quantidade: 50000, numeroNF: "NF-GRB-7788",
+        status: "APROVADO", checklist: checklistAprovado,
+      },
+    });
+    await prisma.rotulo.create({
+      data: {
+        fornecedor: "Embalagens Norte Ltda", loteFornecedor: "EMB-9911",
+        produtoId: produto.id, quantidade: 20000,
+        status: "EM_ANALISE", checklist: checklistAprovado,
+      },
+    });
+    log.push("2 lotes de rótulos criados");
+  }
+
+  // Recall — 1 recall classe III (rotulagem) com retornos.
+  const recallCount = await prisma.recall.count();
+  if (recallCount === 0 && todosLotes.length > 0) {
+    const clientesRec = await prisma.cliente.findMany({ take: 3 });
+    const lotesAfetados = todosLotes.slice(0, 1).map((l) => l.id);
+    const recall = await prisma.recall.create({
+      data: {
+        numero: "RC-2026-001", lotesIds: lotesAfetados.join(","),
+        motivo: "ROTULAGEM", nivel: "CLASSE_III",
+        descricao: "Erro de impressão na data de validade (dia trocado) — recall preventivo.",
+        responsavel: "Patricio Ferreira (RT)",
+        dataIdentificacao: diasAtras(10),
+        dataMAPA: diasAtras(9), protocoloMAPA: "MAPA-RC-2026-09988",
+        status: "EM_ANDAMENTO",
+      },
+    });
+    for (const c of clientesRec) {
+      await prisma.recallRetorno.create({
+        data: { recallId: recall.id, clienteId: c.id, qtdNotificada: 50, status: "NOTIFICADO" },
+      });
+    }
+    log.push("1 recall (RC-2026-001) classe III criado");
+  }
+
+  // Especificações de aprovação no insumo (1 insumo demo, se existir).
+  const insumoDemo = await prisma.insumo.findFirst({ where: { tipo: { in: ["ACUCAR", "CO2", "CONCENTRADO"] } } });
+  if (insumoDemo) {
+    const especCount = await prisma.especificacaoInsumo.count({ where: { insumoId: insumoDemo.id } });
+    if (especCount === 0) {
+      await prisma.especificacaoInsumo.createMany({
+        data: [
+          { insumoId: insumoDemo.id, parametro: "Pureza", minimo: 99.5, maximo: null, unidade: "%", metodo: "AOAC 906.03", obrigatorio: true },
+          { insumoId: insumoDemo.id, parametro: "Umidade", minimo: 0, maximo: 0.04, unidade: "%", metodo: "ICUMSA GS2/1/3-15", obrigatorio: true },
+          { insumoId: insumoDemo.id, parametro: "Cor (ICUMSA)", minimo: 0, maximo: 45, unidade: "UI", metodo: "ICUMSA GS2/3-9", obrigatorio: true },
+        ],
+      });
+      log.push(`3 especificações criadas no insumo ${insumoDemo.codigo}`);
+    }
+  }
+
   const counts = {
     clientes: await prisma.cliente.count(),
     lotes: await prisma.lote.count(),
@@ -266,6 +508,15 @@ export async function GET(req: Request) {
     declaracoes: await prisma.declaracaoAnual.count(),
     registrosBPF: await prisma.registroBPF.count(),
     contraProvas: await prisma.contraProva.count(),
+    formulacoes: await prisma.formulacao.count(),
+    avaliacoesSensoriais: await prisma.avaliacaoSensorial.count(),
+    controleAgua: await prisma.controleAgua.count(),
+    pontosTemperatura: await prisma.pontoTemperatura.count(),
+    registrosTemperatura: await prisma.registroTemperatura.count(),
+    movimentacoesEstoque: await prisma.movimentacaoEstoque.count(),
+    sacs: await prisma.sAC.count(),
+    rotulos: await prisma.rotulo.count(),
+    recalls: await prisma.recall.count(),
   };
 
   return NextResponse.json({ ok: true, counts, log });
