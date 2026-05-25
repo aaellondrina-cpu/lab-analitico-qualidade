@@ -88,6 +88,17 @@ export async function excluirInsumo(id: string) {
   return { ok: true };
 }
 
+const CONDICOES = ["AVISTA", "30", "60", "90"] as const;
+
+const numOpt = z
+  .union([z.literal(""), z.string()])
+  .transform((v) => (v === "" ? undefined : Number(v)))
+  .refine((v) => v === undefined || (!Number.isNaN(v) && v >= 0), "Valor inválido");
+
+const dateOpt = z
+  .union([z.literal(""), z.string()])
+  .transform((v) => (v === "" ? undefined : new Date(v)));
+
 const LoteInsumoSchema = z.object({
   insumoId: z.string().min(1),
   loteFornecedor: z.string().min(1, "Lote obrigatório").trim(),
@@ -101,6 +112,11 @@ const LoteInsumoSchema = z.object({
   certificadoUrl: z.string().trim().url("URL inválida").optional().or(z.literal("").transform(() => undefined)),
   status: z.enum(STATUS_LOTE).default("EM_ANALISE"),
   observacoes: z.string().trim().optional().or(z.literal("").transform(() => undefined)),
+  // Custos
+  precoUnitario: numOpt,
+  numeroNF: z.union([z.literal(""), z.string()]).transform((v) => (v === "" ? undefined : v.trim())),
+  dataNF: dateOpt,
+  condicaoPagamento: z.union([z.literal(""), z.enum(CONDICOES)]).transform((v) => (v === "" ? undefined : v)),
 });
 
 export type LoteInsumoFormState = InsumoFormState;
@@ -121,16 +137,26 @@ export async function criarLoteInsumo(
     certificadoUrl: formData.get("certificadoUrl"),
     status: formData.get("status") ?? "EM_ANALISE",
     observacoes: formData.get("observacoes"),
+    precoUnitario: formData.get("precoUnitario") ?? "",
+    numeroNF: formData.get("numeroNF") ?? "",
+    dataNF: formData.get("dataNF") ?? "",
+    condicaoPagamento: formData.get("condicaoPagamento") ?? "",
   });
 
   if (!parsed.success) {
     return { errors: z.flattenError(parsed.error).fieldErrors as Record<string, string[]> };
   }
 
+  const valorTotal =
+    parsed.data.precoUnitario != null && parsed.data.quantidade != null
+      ? parsed.data.precoUnitario * parsed.data.quantidade
+      : undefined;
+
   const data = {
     ...parsed.data,
     dataFabricacao: new Date(parsed.data.dataFabricacao),
     dataValidade: new Date(parsed.data.dataValidade),
+    valorTotal,
   };
 
   let created;

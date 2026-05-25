@@ -86,6 +86,54 @@ export function LoteInsumoForm({
         placeholder="https://…"
       />
 
+      {/* Custos */}
+      <div className="rounded-md border border-slate-200 bg-slate-50 p-3 space-y-3">
+        <div className="text-[10px] uppercase tracking-wider text-slate-500 font-medium">
+          Custo do lote (opcional)
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Field
+            label="Preço unitário (R$)"
+            name="precoUnitario"
+            type="number"
+            step="0.0001"
+            placeholder="0,00"
+            errors={state.errors?.precoUnitario}
+          />
+          <div>
+            <label className="block text-xs font-medium text-slate-700 mb-1">Cond. pagamento</label>
+            <select
+              name="condicaoPagamento"
+              defaultValue=""
+              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-agua"
+            >
+              <option value="">—</option>
+              <option value="AVISTA">À vista</option>
+              <option value="30">30 dias</option>
+              <option value="60">60 dias</option>
+              <option value="90">90 dias</option>
+            </select>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Field
+            label="Nº da NF"
+            name="numeroNF"
+            placeholder="NF-12345"
+            errors={state.errors?.numeroNF}
+          />
+          <Field
+            label="Data da NF"
+            name="dataNF"
+            type="date"
+            errors={state.errors?.dataNF}
+          />
+        </div>
+        <p className="text-[10px] text-slate-500">
+          Valor total será calculado automaticamente (preço × quantidade).
+        </p>
+      </div>
+
       <div>
         <label className="block text-xs font-medium text-slate-700 mb-1">Status inicial</label>
         <select

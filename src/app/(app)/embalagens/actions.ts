@@ -27,6 +27,10 @@ const EmbalagemSchema = z.object({
   numeroTrips: opt("Trips inválido"),
   status: z.enum(STATUS).default("EM_ANALISE"),
   observacoes: z.string().trim().optional().or(z.literal("").transform(() => undefined)),
+  // Custos
+  precoUnitario: opt("Preço inválido"),
+  quantidadeRecebida: opt("Quantidade inválida"),
+  numeroNF: z.union([z.literal(""), z.string()]).transform((v) => (v === "" ? undefined : v.trim())),
 });
 
 export type EmbalagemFormState = {
@@ -53,15 +57,24 @@ export async function criarEmbalagem(
     numeroTrips: formData.get("numeroTrips"),
     status: formData.get("status") ?? "EM_ANALISE",
     observacoes: formData.get("observacoes"),
+    precoUnitario: formData.get("precoUnitario"),
+    quantidadeRecebida: formData.get("quantidadeRecebida"),
+    numeroNF: formData.get("numeroNF") ?? "",
   });
 
   if (!parsed.success) {
     return { errors: z.flattenError(parsed.error).fieldErrors as Record<string, string[]> };
   }
 
+  const valorTotal =
+    parsed.data.precoUnitario != null && parsed.data.quantidadeRecebida != null
+      ? parsed.data.precoUnitario * parsed.data.quantidadeRecebida
+      : undefined;
+
   const data = {
     ...parsed.data,
     numeroTrips: parsed.data.numeroTrips !== undefined ? Math.trunc(parsed.data.numeroTrips) : undefined,
+    valorTotal,
   };
 
   let created;

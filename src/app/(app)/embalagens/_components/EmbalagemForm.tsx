@@ -113,6 +113,21 @@ export function EmbalagemForm() {
         </div>
       </fieldset>
 
+      {/* Custos */}
+      <fieldset className="rounded-md border border-slate-200 bg-slate-50 p-3 space-y-3">
+        <legend className="px-1 text-[10px] uppercase tracking-wider text-slate-500 font-medium">
+          Custo (opcional)
+        </legend>
+        <div className="grid grid-cols-2 gap-3">
+          <NumField label="Preço unitário (R$)" name="precoUnitario" step="0.0001" />
+          <NumField label="Quantidade recebida" name="quantidadeRecebida" step="0.01" />
+        </div>
+        <Field label="Nº da NF" name="numeroNF" placeholder="NF-12345" />
+        <p className="text-[10px] text-slate-500">
+          Valor total será calculado automaticamente (preço × quantidade recebida).
+        </p>
+      </fieldset>
+
       <div>
         <label className="block text-xs font-medium text-slate-700 mb-1">Status inicial</label>
         <select
