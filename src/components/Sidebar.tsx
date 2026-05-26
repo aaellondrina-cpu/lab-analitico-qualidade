@@ -76,6 +76,7 @@ const sections: NavSection[] = [
     title: "Relatórios",
     items: [
       { href: "/relatorios", label: "Painel" },
+      { href: "/indicadores", label: "Indicadores da Qualidade" },
       { href: "/relatorios/custos", label: "Custos de produção" },
       { href: "/relatorios/livro-producao", label: "Livro de produção" },
       { href: "/relatorios/etiqueta", label: "Etiqueta (impressora)" },
