@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/PageHeader";
+import { DeleteButton } from "@/components/DeleteButton";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/dal";
 import { statusAmostra, tipoAnaliseLabel } from "@/lib/constants";
 import { CONFORMIDADE_META, descreverLimite, type Conformidade } from "@/lib/conformidade";
 import { ResultadoForm } from "../_components/ResultadoForm";
 import { AprovarButton } from "../_components/AprovarButton";
+import { excluirAmostra, excluirResultado } from "../actions";
 
 function fmtDate(d: Date | null | undefined) {
   if (!d) return "—";
@@ -66,6 +68,13 @@ export default async function AmostraDetalhePage({
                 Emitir laudo →
               </Link>
             )}
+            {(user.role === "ADMIN" || user.role === "RESPONSAVEL_TECNICO") && (
+              <DeleteButton
+                onConfirm={excluirAmostra.bind(null, amostra.id)}
+                label="Excluir amostra"
+                confirmText={`Excluir a amostra ${amostra.numeroOS}? Esta ação não pode ser desfeita.`}
+              />
+            )}
           </div>
         }
       />
@@ -102,6 +111,7 @@ export default async function AmostraDetalhePage({
                 <th className="px-4 py-2">Conformidade</th>
                 <th className="px-4 py-2">Analista</th>
                 <th className="px-4 py-2">Data</th>
+                <th className="px-4 py-2 w-px"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -110,6 +120,10 @@ export default async function AmostraDetalhePage({
                   (e) => e.parametro.toLowerCase() === r.parametro.toLowerCase(),
                 );
                 const meta = CONFORMIDADE_META[r.conformidade as Conformidade] ?? CONFORMIDADE_META.CONFORME;
+                const canEdit =
+                  amostra.status !== "APROVADO" &&
+                  amostra.status !== "LAUDO_EMITIDO" &&
+                  (user.role === "ADMIN" || user.role === "RESPONSAVEL_TECNICO" || user.role === "ANALISTA");
                 return (
                   <tr key={r.id}>
                     <td className="px-4 py-2 font-medium text-slate-900">{r.parametro}</td>
@@ -123,6 +137,16 @@ export default async function AmostraDetalhePage({
                     </td>
                     <td className="px-4 py-2 text-xs text-slate-700">{r.analista}</td>
                     <td className="px-4 py-2 text-xs text-slate-500">{fmtDate(r.dataEnsaio)}</td>
+                    <td className="px-4 py-2 text-right">
+                      {canEdit && (
+                        <DeleteButton
+                          onConfirm={excluirResultado.bind(null, r.id, amostra.id)}
+                          label="Excluir"
+                          size="sm"
+                          confirmText={`Excluir o resultado de ${r.parametro}?`}
+                        />
+                      )}
+                    </td>
                   </tr>
                 );
               })}

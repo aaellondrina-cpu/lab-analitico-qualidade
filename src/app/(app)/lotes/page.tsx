@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
+import { DeleteButton } from "@/components/DeleteButton";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/dal";
 import { statusLote } from "@/lib/constants";
 import { LoteStatusActions } from "./_components/LoteStatusActions";
 import { ProdutoFilter } from "./_components/ProdutoFilter";
+import { excluirLote } from "./actions";
 
 function fmtDate(d: Date | null | undefined) {
   if (!d) return "—";
@@ -16,7 +18,7 @@ export default async function LotesPage({
 }: {
   searchParams: Promise<{ status?: string; produto?: string }>;
 }) {
-  await requireUser();
+  const user = await requireUser();
   const sp = await searchParams;
 
   const where: { status?: string; produtoId?: string } = {};
@@ -121,7 +123,7 @@ export default async function LotesPage({
                     </td>
                     <td className="px-4 py-3 text-right text-slate-600">{l._count.amostras}</td>
                     <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-3">
+                      <div className="flex items-center justify-end gap-2">
                         <Link
                           href={`/lotes/${l.id}/editar`}
                           className="text-xs text-petroleo hover:underline"
@@ -129,6 +131,14 @@ export default async function LotesPage({
                           Editar
                         </Link>
                         <LoteStatusActions id={l.id} status={l.status} />
+                        {(user.role === "ADMIN" || user.role === "RESPONSAVEL_TECNICO") && (
+                          <DeleteButton
+                            onConfirm={excluirLote.bind(null, l.id)}
+                            label="Excluir"
+                            size="sm"
+                            confirmText={`Excluir o lote ${l.numero}?`}
+                          />
+                        )}
                       </div>
                     </td>
                   </tr>

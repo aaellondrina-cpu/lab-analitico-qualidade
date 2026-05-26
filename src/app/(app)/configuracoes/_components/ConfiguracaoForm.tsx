@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { salvarConfiguracao, type ConfiguracaoFormState } from "../actions";
 import { HeaderPreview } from "./HeaderPreview";
 import { MaskedInput } from "@/components/MaskedInput";
+import { CepAutoInput } from "@/components/CepAutoInput";
 
 const initialState: ConfiguracaoFormState = {};
 
@@ -87,20 +88,22 @@ export function ConfiguracaoForm({ initial }: { initial: ConfigData | null }) {
         </Section>
 
         <Section title="Endereço">
-          <Field label="Logradouro" name="endereco" defaultValue={initial?.endereco ?? ""} errors={state.errors?.endereco} required />
           <Row>
-            <FieldMasked
-              label="CEP"
-              name="cep"
-              mask="cep"
-              defaultValue={initial?.cep ?? ""}
-              errors={state.errors?.cep}
-              placeholder="00000-000"
-              required
-            />
-            <Field label="Cidade" name="cidade" defaultValue={initial?.cidade ?? ""} errors={state.errors?.cidade} required />
+            <div>
+              <label htmlFor="cep" className="block text-xs font-medium text-slate-700 mb-1">CEP</label>
+              <CepAutoInput
+                name="cep"
+                defaultValue={initial?.cep ?? ""}
+                placeholder="00000-000"
+                required
+                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-agua"
+              />
+              {state.errors?.cep?.length ? <p className="mt-1 text-xs text-red-600">{state.errors.cep[0]}</p> : null}
+            </div>
             <Field label="UF" name="estado" defaultValue={initial?.estado ?? ""} errors={state.errors?.estado} required />
           </Row>
+          <Field label="Logradouro" name="endereco" defaultValue={initial?.endereco ?? ""} errors={state.errors?.endereco} required />
+          <Field label="Cidade" name="cidade" defaultValue={initial?.cidade ?? ""} errors={state.errors?.cidade} required />
         </Section>
 
         <Section title="Contato">

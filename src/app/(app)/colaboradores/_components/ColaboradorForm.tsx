@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { criarColaborador, type ColaboradorFormState } from "../actions";
+import { MaskedInput } from "@/components/MaskedInput";
 
 const initialState: ColaboradorFormState = {};
 
@@ -28,7 +29,7 @@ export function ColaboradorForm() {
         </div>
         <div>
           <label className="block text-xs font-medium text-slate-700 mb-1">CPF</label>
-          <input name="cpf" placeholder="000.000.000-00" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+          <MaskedInput name="cpf" mask="cpf" placeholder="000.000.000-00" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
         </div>
         <div>
           <label className="block text-xs font-medium text-slate-700 mb-1">Data de admissão</label>
@@ -66,7 +67,7 @@ export function ColaboradorForm() {
         </div>
         <div>
           <label className="block text-xs font-medium text-slate-700 mb-1">Telefone</label>
-          <input name="telefone" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+          <MaskedInput name="telefone" mask="telefone" placeholder="(00) 00000-0000" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
         </div>
       </div>
 
