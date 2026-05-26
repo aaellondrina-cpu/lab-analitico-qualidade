@@ -5,6 +5,10 @@ import { QualiHelpButton } from "@/components/QualiHelpButton";
 import { getCurrentCliente } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
 
+// Portal depende de sessão de cliente — sempre dinâmico (ver comentário no
+// (app)/layout.tsx sobre a mesma situação com next-auth/react no build).
+export const dynamic = "force-dynamic";
+
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentCliente();
 
