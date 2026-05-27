@@ -44,7 +44,7 @@ export default async function PortalLayout({ children }: { children: React.React
           {children}
         </main>
       </div>
-      <QualiHelpButton variant="portal" autoOpenKey="quali-tour-portal-v1" />
+      <QualiHelpButton variant="portal" autoOpenKey="quali-tour-portal-v2" />
     </div>
   );
 }
