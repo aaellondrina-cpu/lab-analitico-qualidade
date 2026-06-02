@@ -35,6 +35,7 @@ export type InsumoFormState = {
   errors?: Record<string, string[]>;
   message?: string;
   ok?: boolean;
+  insumoId?: string;
 };
 
 export async function criarInsumo(
@@ -67,7 +68,7 @@ export async function criarInsumo(
 
   await auditLog({ action: "CREATE", entity: "Insumo", entityId: created.id, diff: parsed.data });
   revalidatePath("/insumos");
-  return { ok: true };
+  return { ok: true, insumoId: created.id };
 }
 
 export async function excluirInsumo(id: string) {

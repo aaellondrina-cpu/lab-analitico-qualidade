@@ -35,10 +35,10 @@ export function InsumoForm({ fornecedores }: { fornecedores: Fornecedor[] }) {
 
   useEffect(() => {
     if (state.ok) {
-      router.push("/insumos");
+      router.push(state.insumoId ? `/insumos/${state.insumoId}` : "/insumos");
       router.refresh();
     }
-  }, [state.ok, router]);
+  }, [state.ok, state.insumoId, router]);
 
   return (
     <form action={action} className="space-y-4">
@@ -100,6 +100,12 @@ export function InsumoForm({ fornecedores }: { fornecedores: Fornecedor[] }) {
           ))}
         </select>
       </div>
+
+      <p className="rounded-md border border-agua/30 bg-agua/5 px-3 py-2 text-xs text-slate-600">
+        💡 Os valores de custo (preço unitário, NF, condição de pagamento) são
+        preenchidos ao registrar o primeiro <strong>lote</strong> do insumo —
+        você vai cair direto nessa tela após salvar.
+      </p>
 
       {state.message && (
         <p className="rounded-md bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">

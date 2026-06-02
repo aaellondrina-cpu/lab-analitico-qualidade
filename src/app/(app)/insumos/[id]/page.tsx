@@ -34,6 +34,11 @@ function fmtDate(d: Date | null | undefined) {
   return new Date(d).toLocaleDateString("pt-BR");
 }
 
+function fmtBRL(v: number | null | undefined) {
+  if (v === null || v === undefined) return "—";
+  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
 function diasParaVencer(validade: Date): number {
   const ms = new Date(validade).getTime() - Date.now();
   return Math.ceil(ms / (1000 * 60 * 60 * 24));
@@ -86,6 +91,10 @@ export default async function InsumoDetalhePage({
                     <th className="px-3 py-2 text-left">Fabricação</th>
                     <th className="px-3 py-2 text-left">Validade</th>
                     <th className="px-3 py-2 text-right">Quantidade</th>
+                    <th className="px-3 py-2 text-right">Preço unit.</th>
+                    <th className="px-3 py-2 text-right">Valor total</th>
+                    <th className="px-3 py-2 text-left">NF</th>
+                    <th className="px-3 py-2 text-left">Pagto</th>
                     <th className="px-3 py-2 text-left">Status</th>
                     <th className="px-3 py-2"></th>
                   </tr>
@@ -129,6 +138,14 @@ export default async function InsumoDetalhePage({
                         <td className="px-3 py-2 text-right text-slate-700">
                           {l.quantidade} {l.unidade}
                         </td>
+                        <td className="px-3 py-2 text-right text-slate-700">
+                          {fmtBRL(l.precoUnitario)}
+                        </td>
+                        <td className="px-3 py-2 text-right font-medium text-petroleo">
+                          {fmtBRL(l.valorTotal)}
+                        </td>
+                        <td className="px-3 py-2 text-xs text-slate-500">{l.numeroNF ?? "—"}</td>
+                        <td className="px-3 py-2 text-xs text-slate-500">{l.condicaoPagamento ?? "—"}</td>
                         <td className="px-3 py-2">
                           <StatusLoteInsumoSelect
                             id={l.id}

@@ -1,19 +1,55 @@
+import { PageHeader } from "@/components/PageHeader";
+import { prisma } from "@/lib/prisma";
 import { requireCliente } from "@/lib/dal";
-import { PortalPlaceholder } from "../_components/PortalPlaceholder";
+import { tipoPontoLabel } from "@/lib/constants";
 
-export default async function Page() {
+export default async function PortalPontosColetaPage() {
   await requireCliente();
+  const pontos = await prisma.pontoColeta.findMany({
+    orderBy: { createdAt: "desc" },
+    include: { _count: { select: { amostras: true } } },
+  });
+
   return (
-    <PortalPlaceholder
-      title="Pontos de coleta"
-      subtitle="Locais de amostragem de água, swab e ambiente"
-      features={[
-        "Cadastro de pontos com identificação e localização",
-        "Tipos: água bruta, água tratada, água de envase, swab de superfície, ar ambiente",
-        "Frequência de coleta programada",
-        "Vínculo com amostras coletadas (rastreabilidade)",
-        "Plano de monitoramento por ponto",
-      ]}
-    />
+    <div className="space-y-6">
+      <PageHeader
+        title="Pontos de Coleta"
+        subtitle={`${pontos.length} ponto${pontos.length === 1 ? "" : "s"} cadastrado${pontos.length === 1 ? "" : "s"}`}
+      />
+
+      <div className="rounded-lg border border-agua/30 bg-agua/5 p-4 text-sm text-slate-700">
+        💧 <strong>Olá!</strong> Aqui você consulta os pontos de coleta (água, swab, ambiente) e
+        quantas amostras já foram coletadas em cada um. Tela de consulta.
+      </div>
+
+      {pontos.length === 0 ? (
+        <div className="rounded-lg border border-slate-200 bg-white p-8 text-center text-slate-400 text-sm">
+          Nenhum ponto cadastrado ainda.
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+              <tr>
+                <th className="px-4 py-3 text-left">Nome</th>
+                <th className="px-4 py-3 text-left">Tipo</th>
+                <th className="px-4 py-3 text-left">Localização</th>
+                <th className="px-4 py-3 text-right">Amostras</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {pontos.map((p) => (
+                <tr key={p.id} className="hover:bg-slate-50">
+                  <td className="px-4 py-3 font-medium text-slate-900">{p.nome}</td>
+                  <td className="px-4 py-3 text-slate-700">{tipoPontoLabel(p.tipo)}</td>
+                  <td className="px-4 py-3 text-slate-600">{p.localizacao ?? "—"}</td>
+                  <td className="px-4 py-3 text-right text-slate-600">{p._count.amostras}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   );
 }
