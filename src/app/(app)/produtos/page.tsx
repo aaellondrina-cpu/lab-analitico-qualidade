@@ -2,12 +2,22 @@ import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/dal";
-import { tipoProdutoLabel } from "@/lib/constants";
+import { tipoProdutoLabel, TIPOS_PRODUTO } from "@/lib/constants";
 import { ExcluirProdutoButton } from "./_components/ExcluirProdutoButton";
 
-export default async function ProdutosPage() {
+export default async function ProdutosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tipo?: string }>;
+}) {
   await requireUser();
+  const sp = await searchParams;
+
+  const where: { tipo?: string } = {};
+  if (sp.tipo) where.tipo = sp.tipo;
+
   const produtos = await prisma.produto.findMany({
+    where,
     orderBy: { createdAt: "desc" },
     include: {
       _count: { select: { amostras: true, especificacoes: true } },
@@ -28,6 +38,17 @@ export default async function ProdutosPage() {
           </Link>
         }
       />
+
+      <div className="flex flex-wrap gap-2 mb-4">
+        <Link href="/produtos" className={`rounded-full px-3 py-1 text-xs ${!sp.tipo ? "bg-petroleo text-white" : "bg-white border border-slate-300 text-slate-700 hover:bg-slate-50"}`}>
+          Todos
+        </Link>
+        {TIPOS_PRODUTO.map(({ value, label }) => (
+          <Link key={value} href={`/produtos?tipo=${value}`} className={`rounded-full px-3 py-1 text-xs ${sp.tipo === value ? "bg-petroleo text-white" : "bg-white border border-slate-300 text-slate-700 hover:bg-slate-50"}`}>
+            {label}
+          </Link>
+        ))}
+      </div>
 
       {produtos.length === 0 ? (
         <div className="rounded-lg border border-slate-200 bg-white p-8 text-center text-slate-400 text-sm">

@@ -18,14 +18,26 @@ const TIPO_LABEL: Record<string, string> = {
   OUTRO: "Outro",
 };
 
+const TIPOS_INSUMO = Object.entries(TIPO_LABEL).map(([value, label]) => ({ value, label }));
+
 function fmtBRL(v: number | null | undefined) {
   if (v === null || v === undefined) return "—";
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-export default async function InsumosPage() {
+export default async function InsumosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tipo?: string }>;
+}) {
   await requireUser();
+  const sp = await searchParams;
+
+  const where: { tipo?: string } = {};
+  if (sp.tipo) where.tipo = sp.tipo;
+
   const insumos = await prisma.insumo.findMany({
+    where,
     orderBy: { createdAt: "desc" },
     include: {
       fornecedor: { select: { razaoSocial: true } },
@@ -61,6 +73,17 @@ export default async function InsumosPage() {
           </Link>
         }
       />
+
+      <div className="flex flex-wrap gap-2 mb-4">
+        <Link href="/insumos" className={`rounded-full px-3 py-1 text-xs ${!sp.tipo ? "bg-petroleo text-white" : "bg-white border border-slate-300 text-slate-700 hover:bg-slate-50"}`}>
+          Todos
+        </Link>
+        {TIPOS_INSUMO.map(({ value, label }) => (
+          <Link key={value} href={`/insumos?tipo=${value}`} className={`rounded-full px-3 py-1 text-xs ${sp.tipo === value ? "bg-petroleo text-white" : "bg-white border border-slate-300 text-slate-700 hover:bg-slate-50"}`}>
+            {label}
+          </Link>
+        ))}
+      </div>
 
       {insumos.length === 0 ? (
         <div className="rounded-lg border border-slate-200 bg-white p-8 text-center text-slate-400 text-sm">

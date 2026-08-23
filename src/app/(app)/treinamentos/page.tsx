@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/dal";
 import { TreinamentoForm } from "./_components/TreinamentoForm";
-import { formaTreinamentoLabel } from "@/lib/documento-meta";
+import { formaTreinamentoLabel, FORMA_TREINAMENTO } from "@/lib/documento-meta";
 
 function fmtDate(d: Date | null) {
   if (!d) return "—";
@@ -36,8 +36,16 @@ const CELL_LABEL: Record<CellStatus, string> = {
   NAO_TREINADO: "—",
 };
 
-export default async function TreinamentosPage() {
+export default async function TreinamentosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ forma?: string }>;
+}) {
   await requireUser();
+  const sp = await searchParams;
+
+  const where: { forma?: string } = {};
+  if (sp.forma) where.forma = sp.forma;
 
   const [colaboradores, documentos, treinamentos] = await Promise.all([
     prisma.colaborador.findMany({
@@ -49,6 +57,7 @@ export default async function TreinamentosPage() {
       orderBy: { codigo: "asc" },
     }),
     prisma.treinamento.findMany({
+      where,
       orderBy: { dataRealizado: "desc" },
       include: {
         colaborador: { select: { nome: true } },
@@ -164,6 +173,18 @@ export default async function TreinamentosPage() {
       )}
 
       <h2 className="text-sm font-semibold text-petroleo mt-6 mb-3">Treinamentos recentes</h2>
+
+      <div className="flex flex-wrap gap-2 mb-4">
+        <Link href="/treinamentos" className={`rounded-full px-3 py-1 text-xs ${!sp.forma ? "bg-slate-700 text-white" : "bg-white border border-slate-300 text-slate-700 hover:bg-slate-50"}`}>
+          Todos
+        </Link>
+        {FORMA_TREINAMENTO.map(({ value, label }) => (
+          <Link key={value} href={`/treinamentos?forma=${value}`} className={`rounded-full px-3 py-1 text-xs ${sp.forma === value ? "bg-slate-700 text-white" : "bg-white border border-slate-300 text-slate-700 hover:bg-slate-50"}`}>
+            {label}
+          </Link>
+        ))}
+      </div>
+
       {treinamentos.length === 0 ? (
         <div className="rounded-lg border border-slate-200 bg-white p-6 text-center text-slate-400 text-sm">
           Nenhum treinamento registrado.
