@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState } from "react";
-import { CHECKLIST_ITEMS, criarRotulo, type RotuloFormState } from "../actions";
+import { criarRotulo, type RotuloFormState } from "../actions";
+import { CHECKLIST_ITEMS } from "../checklist";
 
 const initialState: RotuloFormState = {};
 

@@ -5,34 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/dal";
-
-// 24 itens do checklist RDC 259/2002 + Decreto 6.871/2009.
-export const CHECKLIST_ITEMS = [
-  { id: "denominacao", label: "Denominação de venda (conforme registro MAPA)", grupo: "Identificação" },
-  { id: "registroMAPA", label: "Número de registro MAPA do produto", grupo: "Identificação" },
-  { id: "marca", label: "Marca comercial", grupo: "Identificação" },
-  { id: "ingredientes", label: "Lista de ingredientes em ordem decrescente", grupo: "Composição" },
-  { id: "aditivos", label: "Aditivos com nome e INS", grupo: "Composição" },
-  { id: "alergenos", label: "Declaração de alérgenos", grupo: "Composição" },
-  { id: "edulcorantes", label: "Declaração de edulcorantes (se diet)", grupo: "Composição" },
-  { id: "fabricante", label: "Razão social e CNPJ do fabricante", grupo: "Fabricante" },
-  { id: "endereco", label: "Endereço completo do estabelecimento", grupo: "Fabricante" },
-  { id: "registroEstab", label: "Registro do estabelecimento no MAPA", grupo: "Fabricante" },
-  { id: "origem", label: '"Indústria Brasileira" ou indicação de origem', grupo: "Fabricante" },
-  { id: "volume", label: "Volume líquido (ex: 2L, 350mL)", grupo: "Conteúdo" },
-  { id: "lote", label: "Campo para impressão do lote", grupo: "Conteúdo" },
-  { id: "dataFab", label: "Campo para data de fabricação", grupo: "Conteúdo" },
-  { id: "validade", label: "Prazo de validade", grupo: "Conteúdo" },
-  { id: "tabelaNutri", label: "Tabela nutricional RDC 429/2020", grupo: "Nutrição" },
-  { id: "valorEnergetico", label: "Valor energético (kcal e kJ)", grupo: "Nutrição" },
-  { id: "macronutrientes", label: "Carboidratos, proteínas, gorduras, fibras, sódio", grupo: "Nutrição" },
-  { id: "lupaFrontal", label: "Lupa frontal (se exceder limites)", grupo: "Nutrição" },
-  { id: "alertaAlcool", label: '"Beba com moderação" (se alcoólica)', grupo: "Alertas" },
-  { id: "alerta18", label: '"Venda proibida menores 18" (se alcoólica)', grupo: "Alertas" },
-  { id: "alertaDiet", label: 'Advertência diet/zero', grupo: "Alertas" },
-  { id: "codigoBarras", label: "Código de barras legível (EAN-13/EAN-8)", grupo: "Código" },
-  { id: "legibilidade", label: "Legibilidade e impressão conforme arte", grupo: "Inspeção" },
-];
+import { CHECKLIST_ITEMS } from "./checklist";
 
 const strOpt = z.union([z.literal(""), z.string()]).transform((v) => (!v || !v.trim() ? undefined : v.trim()));
 
