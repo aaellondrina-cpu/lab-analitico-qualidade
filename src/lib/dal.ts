@@ -38,7 +38,7 @@ export async function getCurrentCliente() {
   const session = await getServerSession(authOptions);
   const user = session?.user;
   if (!user || user.type !== "CLIENT" || !user.clienteId) return null;
-  return user;
+  return { ...user, clienteId: user.clienteId };
 }
 
 export async function requireCliente() {

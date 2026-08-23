@@ -82,7 +82,7 @@ const sections: NavSection[] = [
 ];
 
 type Props = {
-  userName: string;
+  userName?: string | null;
   clienteNome?: string | null;
 };
 
@@ -132,7 +132,7 @@ export function PortalSidebar({ userName, clienteNome }: Props) {
       </nav>
       <div className="px-5 py-3 border-t border-slate-200">
         <div className="flex flex-col leading-tight mb-2">
-          <span className="text-sm font-medium text-petroleo truncate">{userName}</span>
+          <span className="text-sm font-medium text-petroleo truncate">{userName ?? "Cliente"}</span>
           {clienteNome && (
             <span className="text-[11px] text-slate-500 truncate">{clienteNome}</span>
           )}
