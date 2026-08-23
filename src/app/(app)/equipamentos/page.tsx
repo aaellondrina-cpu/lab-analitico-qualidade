@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/dal";
@@ -20,9 +21,19 @@ function diasAte(d: Date) {
   return Math.round(diff / (1000 * 60 * 60 * 24));
 }
 
-export default async function EquipamentosPage() {
+export default async function EquipamentosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string }>;
+}) {
   await requireUser();
+  const sp = await searchParams;
+
+  const where: { status?: string } = {};
+  if (sp.status) where.status = sp.status;
+
   const equipamentos = await prisma.equipamento.findMany({
+    where,
     orderBy: [{ proximaCalibracao: "asc" }],
     include: { _count: { select: { resultados: true } } },
   });
@@ -40,6 +51,17 @@ export default async function EquipamentosPage() {
         subtitle={`${equipamentos.length} equipamento(s) · ${counts.VENCIDO} vencido(s) · ${counts.PROXIMO_VENCIMENTO} próximos do vencimento`}
         action={<RecalcularButton />}
       />
+
+      <div className="flex flex-wrap gap-2 mb-4">
+        <Link href="/equipamentos" className={`rounded-full px-3 py-1 text-xs ${!sp.status ? "bg-slate-700 text-white" : "bg-white border border-slate-300 text-slate-700 hover:bg-slate-50"}`}>
+          Todos
+        </Link>
+        {Object.entries({ CALIBRADO: "Calibrado", PROXIMO_VENCIMENTO: "Próximo vencimento", VENCIDO: "Vencido" }).map(([s, l]) => (
+          <Link key={s} href={`/equipamentos?status=${s}`} className={`rounded-full px-3 py-1 text-xs ${sp.status === s ? "bg-slate-700 text-white" : "bg-white border border-slate-300 text-slate-700 hover:bg-slate-50"}`}>
+            {l}
+          </Link>
+        ))}
+      </div>
 
       <section className="mb-6 rounded-lg border border-slate-200 bg-white p-4">
         <h2 className="text-sm font-semibold text-petroleo mb-3">Novo equipamento</h2>

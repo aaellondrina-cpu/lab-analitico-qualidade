@@ -26,10 +26,20 @@ function fmtDate(d: Date | null | undefined) {
   return new Date(d).toLocaleDateString("pt-BR");
 }
 
-export default async function RecallPage() {
+export default async function RecallPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string; nivel?: string }>;
+}) {
   await requireUser();
+  const sp = await searchParams;
+
+  const where: { status?: string; nivel?: string } = {};
+  if (sp.status) where.status = sp.status;
+  if (sp.nivel) where.nivel = sp.nivel;
 
   const recalls = await prisma.recall.findMany({
+    where,
     orderBy: { createdAt: "desc" },
     include: { _count: { select: { retornos: true } } },
     take: 50,
@@ -46,6 +56,23 @@ export default async function RecallPage() {
           </Link>
         }
       />
+
+      <div className="flex flex-wrap gap-2 mb-4">
+        <Link href="/recall" className={`rounded-full px-3 py-1 text-xs ${!sp.status && !sp.nivel ? "bg-red-600 text-white" : "bg-white border border-slate-300 text-slate-700 hover:bg-slate-50"}`}>
+          Todos
+        </Link>
+        {Object.entries({ ABERTO: "Aberto", EM_ANDAMENTO: "Em andamento", ENCERRADO: "Encerrado" }).map(([s, l]) => (
+          <Link key={s} href={`/recall?status=${s}`} className={`rounded-full px-3 py-1 text-xs ${sp.status === s ? "bg-red-600 text-white" : "bg-white border border-slate-300 text-slate-700 hover:bg-slate-50"}`}>
+            {l}
+          </Link>
+        ))}
+        <span className="text-xs text-slate-400 ml-2 flex items-center">|</span>
+        {Object.entries({ CLASSE_I: "Classe I", CLASSE_II: "Classe II", CLASSE_III: "Classe III" }).map(([n, l]) => (
+          <Link key={n} href={`/recall?nivel=${n}`} className={`rounded-full px-3 py-1 text-xs ${sp.nivel === n ? "bg-red-600 text-white" : "bg-white border border-slate-300 text-slate-700 hover:bg-slate-50"}`}>
+            {l}
+          </Link>
+        ))}
+      </div>
 
       {recalls.length === 0 ? (
         <div className="rounded-lg border border-slate-200 bg-white p-8 text-center text-slate-400 text-sm">
