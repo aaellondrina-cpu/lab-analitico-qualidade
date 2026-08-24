@@ -13,13 +13,15 @@ export function ResultadosRapidosForm({
   pacotesEnsaios,
   equipamentos,
   defaultAnalista,
+  pacoteDefault = "",
 }: {
   amostraId: string;
   pacotesEnsaios: Record<string, TestePacote[]>;
   equipamentos: Equipamento[];
   defaultAnalista: string;
+  pacoteDefault?: string;
 }) {
-  const [pacoteSelecionado, setPacoteSelecionado] = useState<string>("");
+  const [pacoteSelecionado, setPacoteSelecionado] = useState<string>(pacoteDefault);
   const [modoManual, setModoManual] = useState(false);
   const [resultados, setResultados] = useState<Record<string, string>>({});
   const [parametroManual, setParametroManual] = useState("");

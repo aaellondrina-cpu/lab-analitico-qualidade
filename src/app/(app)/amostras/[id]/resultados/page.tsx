@@ -59,6 +59,22 @@ export default async function ResultadosPage({
 
   const canEdit = user.role === "ADMIN" || user.role === "RESPONSAVEL_TECNICO" || user.role === "ANALISTA";
 
+  // Detectar pacote automático baseado no tipo de amostra/produto
+  const detectarPacoteAutomatico = () => {
+    // Se for água
+    if (amostra.tipoPonto === "AGUA" || amostra.produto.tipoProduto === "AGUA") {
+      return "Água potável - Portaria 914/2011";
+    }
+    // Se for bebida
+    if (amostra.produto.tipoProduto === "BEBIDA_ALCOOLICA" || amostra.produto.tipoProduto === "NAO_ALCOOLICA") {
+      return "Bebidas - Análise básica";
+    }
+    // Padrão: Caixa separadora
+    return "Caixa Separadora de Agua e Oleo - CONAMA 430/2011";
+  };
+
+  const pacoteDefault = detectarPacoteAutomatico();
+
   return (
     <>
       <PageHeader
@@ -101,6 +117,7 @@ export default async function ResultadosPage({
           pacotesEnsaios={PACOTES_ENSAIOS}
           equipamentos={equipamentos}
           defaultAnalista={user.name ?? user.email ?? ""}
+          pacoteDefault={pacoteDefault}
         />
       )}
 
