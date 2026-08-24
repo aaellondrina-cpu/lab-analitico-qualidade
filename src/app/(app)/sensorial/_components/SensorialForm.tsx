@@ -64,6 +64,21 @@ export function SensorialForm({ lotes }: { lotes: { id: string; numero: string; 
           <ScaleInput name="cor" label="Cor" />
           <ScaleInput name="odor" label="Odor / Aroma" />
           <ScaleInput name="sabor" label="Sabor" />
+          <div>
+            <label className="block text-xs font-medium text-slate-700 mb-1">Acidez (se aplicável)</label>
+            <select name="acidez" className="w-full rounded-md border border-slate-300 px-2 py-2 text-sm">
+              <option value="">—</option>
+              <option value="1">1 — Muito ácido</option>
+              <option value="2">2</option>
+              <option value="3">3 — Ácido</option>
+              <option value="4">4</option>
+              <option value="5">5 — Equilibrado</option>
+              <option value="6">6</option>
+              <option value="7">7 — Pouco ácido</option>
+              <option value="8">8</option>
+              <option value="9">9 — Não ácido</option>
+            </select>
+          </div>
           <ScaleInput name="carbonatacao" label="Carbonatação (se aplicável)" />
           <ScaleInput name="corpo" label="Corpo / Textura (se aplicável)" />
           <ScaleInput name="impressaoGlobal" label="Impressão global" />

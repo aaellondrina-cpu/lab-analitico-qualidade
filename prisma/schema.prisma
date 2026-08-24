@@ -893,6 +893,7 @@ model AvaliacaoSensorialItem {
   cor             Int
   odor            Int
   sabor           Int
+  acidez          Int?
   carbonatacao    Int?
   corpo           Int?
   impressaoGlobal Int
