@@ -39,8 +39,18 @@ export const STATUS_LOTE = [
   { value: "DESCARTADO", label: "Descartada", color: "bg-red-100 text-red-700" },
 ] as const;
 
+export const STATUS_NC = [
+  { value: "ABERTA", label: "Aberta", color: "bg-red-100 text-red-700" },
+  { value: "EM_TRATAMENTO", label: "Em Tratamento", color: "bg-amber-100 text-amber-700" },
+  { value: "ENCERRADA", label: "Encerrada", color: "bg-emerald-100 text-emerald-700" },
+] as const;
+
 export function statusLote(v: string) {
   return STATUS_LOTE.find((s) => s.value === v) ?? { value: v, label: v, color: "bg-slate-100 text-slate-700" };
+}
+
+export function statusNC(v: string) {
+  return STATUS_NC.find((s) => s.value === v) ?? { value: v, label: v, color: "bg-slate-100 text-slate-700" };
 }
 
 export const ROLE_LABEL: Record<string, string> = {

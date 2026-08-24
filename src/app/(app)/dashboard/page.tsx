@@ -147,6 +147,7 @@ export default async function DashboardPage() {
         <SmallCard label="Insumos" value={totalInsumos} href="/insumos" />
         <SmallCard label="Fornecedores" value={totalFornecedores} href="/fornecedores" />
         <SmallCard label="Clientes" value={totalClientes} href="/clientes" />
+        <SmallCard label="Resultados" value={emAnalise} href="/resultados-analiticos" />
       </section>
 
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
