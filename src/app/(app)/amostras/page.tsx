@@ -28,16 +28,28 @@ export default async function AmostrasPage({
   const where: { status?: string } = {};
   if (sp.status) where.status = sp.status;
 
-  const amostras = await prisma.amostra.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    include: {
-      cliente: { select: { razaoSocial: true } },
-      produto: { select: { nome: true, codigo: true } },
-      lote: { select: { numero: true, sabor: true } },
-      _count: { select: { resultados: true, ncs: true } },
-    },
-  });
+  const [amostras, totalPorStatus] = await Promise.all([
+    prisma.amostra.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      include: {
+        cliente: { select: { razaoSocial: true } },
+        produto: { select: { nome: true, codigo: true } },
+        lote: { select: { numero: true, sabor: true } },
+        _count: { select: { resultados: true, ncs: true } },
+      },
+    }),
+    prisma.amostra.groupBy({
+      by: ["status"],
+      _count: { _all: true },
+    }),
+  ]);
+
+  const contadores = new Map<string, number>();
+  contadores.set("TODOS", 0);
+  totalPorStatus.forEach((s) => contadores.set(s.status, s._count._all));
+  const totalGeral = Array.from(contadores.values()).reduce((a, b) => a + b, 0);
+  contadores.set("TODOS", totalGeral);
 
   return (
     <>
@@ -56,17 +68,18 @@ export default async function AmostrasPage({
           href="/amostras"
           className={"rounded-full px-3 py-1 text-xs " + (!sp.status ? "bg-petroleo text-white" : "bg-white border border-slate-300 text-slate-700 hover:bg-slate-50")}
         >
-          Todas
+          Todas ({contadores.get("TODOS") || 0})
         </Link>
         {STATUS_AMOSTRA.map((s) => {
           const active = sp.status === s.value;
+          const count = contadores.get(s.value) || 0;
           return (
             <Link
               key={s.value}
               href={`/amostras?status=${s.value}`}
               className={"rounded-full px-3 py-1 text-xs " + (active ? "bg-petroleo text-white" : `${s.color} hover:opacity-80`)}
             >
-              {s.label}
+              {s.label} ({count})
             </Link>
           );
         })}
