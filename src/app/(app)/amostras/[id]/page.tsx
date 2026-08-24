@@ -94,9 +94,19 @@ export default async function AmostraDetalhePage({
       <section className="rounded-lg border border-slate-200 bg-white overflow-hidden mb-4">
         <header className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
           <h2 className="text-sm font-semibold text-petroleo">Resultados ({amostra.resultados.length})</h2>
-          {amostra.produto.especificacoes.length > 0 && (
-            <span className="text-xs text-slate-500">{amostra.produto.especificacoes.length} parâmetro(s) especificado(s)</span>
-          )}
+          <div className="flex items-center gap-2">
+            {amostra.status !== "APROVADO" && amostra.status !== "LAUDO_EMITIDO" && (
+              <Link
+                href={`/amostras/${amostra.id}/resultados`}
+                className="text-xs bg-petroleo text-white px-2 py-1 rounded hover:bg-petroleo-dark font-medium"
+              >
+                Entrada Rápida →
+              </Link>
+            )}
+            {amostra.produto.especificacoes.length > 0 && (
+              <span className="text-xs text-slate-500">{amostra.produto.especificacoes.length} parâmetro(s) especificado(s)</span>
+            )}
+          </div>
         </header>
         {amostra.resultados.length === 0 ? (
           <div className="px-4 py-8 text-center text-sm text-slate-400">Nenhum resultado lançado ainda.</div>
