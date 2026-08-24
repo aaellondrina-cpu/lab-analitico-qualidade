@@ -1,9 +1,9 @@
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/dal";
+import { requireRole } from "@/lib/dal";
 
 export async function GET() {
   try {
-    await requireAdmin();
+    await requireRole("ADMIN");
 
     // Encontrar resultados duplicados em amostras já emitidas
     const duplicados = await prisma.$queryRaw<any[]>`
@@ -50,7 +50,7 @@ export async function GET() {
 
 export async function DELETE() {
   try {
-    await requireAdmin();
+    await requireRole("ADMIN");
 
     // Buscar e deletar duplicatas mantendo apenas a mais recente
     const duplicados = await prisma.$queryRaw<any[]>`
