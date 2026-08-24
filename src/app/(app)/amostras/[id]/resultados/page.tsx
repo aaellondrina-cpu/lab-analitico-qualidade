@@ -57,10 +57,7 @@ export default async function ResultadosPage({
     orderBy: { nome: "asc" },
   });
 
-  const canEdit =
-    amostra.status !== "APROVADO" &&
-    amostra.status !== "LAUDO_EMITIDO" &&
-    (user.role === "ADMIN" || user.role === "RESPONSAVEL_TECNICO" || user.role === "ANALISTA");
+  const canEdit = user.role === "ADMIN" || user.role === "RESPONSAVEL_TECNICO" || user.role === "ANALISTA";
 
   return (
     <>
