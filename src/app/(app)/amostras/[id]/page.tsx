@@ -101,7 +101,7 @@ export default async function AmostraDetalhePage({
         <header className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
           <h2 className="text-sm font-semibold text-petroleo">Resultados ({amostra.resultados.length})</h2>
           <div className="flex items-center gap-2">
-            {amostra.status !== "APROVADO" && amostra.status !== "LAUDO_EMITIDO" && (
+            {(user.role === "ADMIN" || user.role === "RESPONSAVEL_TECNICO" || user.role === "ANALISTA") && (
               <Link
                 href={`/amostras/${amostra.id}/resultados`}
                 className="text-xs bg-petroleo text-white px-2 py-1 rounded hover:bg-petroleo-dark font-medium"
@@ -136,10 +136,7 @@ export default async function AmostraDetalhePage({
                   (e) => e.parametro.toLowerCase() === r.parametro.toLowerCase(),
                 );
                 const meta = CONFORMIDADE_META[r.conformidade as Conformidade] ?? CONFORMIDADE_META.CONFORME;
-                const canEdit =
-                  amostra.status !== "APROVADO" &&
-                  amostra.status !== "LAUDO_EMITIDO" &&
-                  (user.role === "ADMIN" || user.role === "RESPONSAVEL_TECNICO" || user.role === "ANALISTA");
+                const canEdit = user.role === "ADMIN" || user.role === "RESPONSAVEL_TECNICO" || user.role === "ANALISTA";
                 return (
                   <tr key={r.id}>
                     <td className="px-4 py-2 font-medium text-slate-900">{r.parametro}</td>
@@ -171,7 +168,7 @@ export default async function AmostraDetalhePage({
         )}
       </section>
 
-      {amostra.status !== "APROVADO" && amostra.status !== "LAUDO_EMITIDO" && (
+      {(user.role === "ADMIN" || user.role === "RESPONSAVEL_TECNICO" || user.role === "ANALISTA") && (
         <section className="rounded-lg border border-slate-200 bg-white p-4 mb-4">
           <h2 className="text-sm font-semibold text-petroleo mb-3">Lançar resultado</h2>
           {amostra.produto.especificacoes.length === 0 && (
