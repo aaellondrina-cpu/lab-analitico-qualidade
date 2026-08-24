@@ -62,11 +62,11 @@ export default async function ResultadosPage({
   // Detectar pacote automático baseado no tipo de amostra/produto
   const detectarPacoteAutomatico = () => {
     // Se for água
-    if (amostra.tipoPonto === "AGUA" || amostra.produto.tipoProduto === "AGUA") {
+    if (amostra.tipoAnalise === "AGUA" || amostra.produto.tipo === "AGUA") {
       return "Água potável - Portaria 914/2011";
     }
     // Se for bebida
-    if (amostra.produto.tipoProduto === "BEBIDA_ALCOOLICA" || amostra.produto.tipoProduto === "NAO_ALCOOLICA") {
+    if (amostra.produto.tipo === "BEBIDA_ALCOOLICA" || amostra.produto.tipo === "NAO_ALCOOLICA") {
       return "Bebidas - Análise básica";
     }
     // Padrão: Caixa separadora
