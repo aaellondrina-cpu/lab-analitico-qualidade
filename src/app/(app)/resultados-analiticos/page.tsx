@@ -35,13 +35,8 @@ export default async function ResultadosAnaliticosPage({
   await requireUser();
   const params = await searchParams;
 
-  const where: any = {};
-  if (params.status && params.status !== "TODOS") {
-    where.status = params.status;
-  }
-
   const amostras = await prisma.amostra.findMany({
-    where,
+    where: {},
     include: {
       cliente: { select: { razaoSocial: true } },
       produto: { select: { nome: true, codigo: true, especificacoes: { select: { id: true } } } },
@@ -105,7 +100,7 @@ export default async function ResultadosAnaliticosPage({
         <Link
           href="/resultados-analiticos"
           className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-            !params.status || params.status === "TODOS"
+            !params.status
               ? "bg-petroleo text-white"
               : "bg-white border border-slate-300 text-slate-700 hover:bg-slate-50"
           }`}
@@ -116,8 +111,8 @@ export default async function ResultadosAnaliticosPage({
           href="/resultados-analiticos?status=RECEBIDO_LAB"
           className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
             params.status === "RECEBIDO_LAB"
-              ? "bg-purple-600 text-white"
-              : "bg-purple-100 border border-purple-300 text-purple-800 hover:bg-purple-200"
+              ? "bg-slate-600 text-white"
+              : "bg-slate-100 border border-slate-300 text-slate-800 hover:bg-slate-200"
           }`}
         >
           Recebimento ({contadores.RECEBIDO_LAB})
@@ -250,16 +245,14 @@ export default async function ResultadosAnaliticosPage({
                         <Link
                           href={`/amostras/${a.id}`}
                           className="text-petroleo hover:underline text-xs font-medium"
-                          title="Visualizar amostra"
                         >
-                          👁
+                          Ver
                         </Link>
                         <Link
                           href={`/amostras/${a.id}/resultados`}
                           className="text-petroleo hover:underline text-xs font-medium"
-                          title="Entrada rápida de resultados"
                         >
-                          📝
+                          Resultados
                         </Link>
                       </div>
                     </td>

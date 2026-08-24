@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { DeleteButton } from "@/components/DeleteButton";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/dal";
-import { statusAmostra, tipoAnaliseLabel } from "@/lib/constants";
+import { statusAmostra, statusNC, tipoAnaliseLabel } from "@/lib/constants";
 import { CONFORMIDADE_META, descreverLimite, type Conformidade } from "@/lib/conformidade";
 import { ResultadoForm } from "../_components/ResultadoForm";
 import { AprovarButton } from "../_components/AprovarButton";
@@ -56,6 +56,12 @@ export default async function AmostraDetalhePage({
         subtitle={`${amostra.produto.nome} · Lote ${amostra.lote.numero}${amostra.lote.sabor ? ` · ${amostra.lote.sabor}` : ""}`}
         action={
           <div className="flex items-center gap-2">
+            <Link
+              href="/amostras"
+              className="rounded-md bg-slate-200 hover:bg-slate-300 px-3 py-2 text-sm font-medium text-slate-700"
+            >
+              ← Voltar
+            </Link>
             <span className={`rounded-full px-3 py-1 text-xs ${s.color}`}>{s.label}</span>
             {amostra.status !== "APROVADO" && amostra.status !== "LAUDO_EMITIDO" && (
               <AprovarButton id={amostra.id} canApprove={canApprove} />
@@ -116,7 +122,7 @@ export default async function AmostraDetalhePage({
               <tr>
                 <th className="px-4 py-2">Parâmetro</th>
                 <th className="px-4 py-2 text-right">Valor</th>
-                <th className="px-4 py-2">Unid.</th>
+                <th className="px-4 py-2">Unidade</th>
                 <th className="px-4 py-2">Limite</th>
                 <th className="px-4 py-2">Conformidade</th>
                 <th className="px-4 py-2">Analista</th>
@@ -194,11 +200,13 @@ export default async function AmostraDetalhePage({
             <h2 className="text-sm font-semibold text-red-900">⚠ Não Conformidades ({amostra.ncs.length})</h2>
           </header>
           <ul className="divide-y divide-red-100">
-            {amostra.ncs.map((nc) => (
+            {amostra.ncs.map((nc) => {
+              const ncStatus = statusNC(nc.status);
+              return (
               <li key={nc.id} className="px-4 py-3 text-sm">
                 <div className="flex items-center justify-between">
                   <div className="font-mono text-xs text-red-700">{nc.numero}</div>
-                  <span className="rounded-full bg-white border border-red-300 px-2 py-0.5 text-[11px] text-red-700">{nc.status}</span>
+                  <span className={`rounded-full px-2 py-0.5 text-[11px] border ${ncStatus.color}`}>{ncStatus.label}</span>
                 </div>
                 <div className="mt-1 text-slate-800">
                   <strong>{nc.parametro}:</strong> {nc.descricao}
@@ -207,7 +215,8 @@ export default async function AmostraDetalhePage({
                   Responsável: {nc.responsavel} · Prazo: {fmtDate(nc.prazo)}
                 </div>
               </li>
-            ))}
+              );
+            })}
           </ul>
         </section>
       )}
